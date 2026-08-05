@@ -1,0 +1,76 @@
+#admin-app {
+  max-width: 720px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--bg);
+  position: relative;
+}
+.admin-shell { max-width: 720px; }
+
+@media (min-width: 860px) {
+  #admin-app { min-height: 0; margin-top: 24px; margin-bottom: 24px; border-radius: 24px; box-shadow: var(--shadow); overflow: hidden; }
+}
+
+.admin-topbar { display: flex; align-items: flex-start; justify-content: space-between; padding: 24px 20px 12px; }
+
+.admin-search-bar {
+  display: flex; align-items: center; gap: 8px; margin: 0 20px 16px;
+  background: var(--card); border: 1px solid var(--gray-200); border-radius: var(--radius-sm);
+  padding: 0 12px;
+}
+.admin-search-bar .input-icon { color: var(--gray-400); display: flex; }
+.admin-search-bar input {
+  border: none; background: transparent; outline: none; flex: 1; padding: 12px 0; font-size: 14px; color: var(--gray-900);
+}
+
+.admin-toolbar { display: flex; justify-content: flex-end; padding: 0 20px 16px; }
+.admin-toolbar .btn { display: inline-flex; align-items: center; gap: 6px; }
+
+.companies-list { padding: 0 20px 40px; display: flex; flex-direction: column; gap: 14px; }
+
+.company-card { background: var(--card); border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 16px; }
+.company-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.company-name { font-weight: 700; font-size: 16px; }
+.company-slug { color: var(--gray-600); font-size: 13px; margin-top: 2px; }
+.company-badges { display: flex; gap: 8px; align-items: center; }
+
+.badge-status-ready { background: var(--green-tint); color: var(--green); }
+.badge-status-provisioning { background: var(--amber-tint); color: var(--amber); }
+.badge-status-error { background: var(--red-tint); color: var(--red); }
+.badge-suspended { background: var(--gray-100); color: var(--gray-600); }
+
+.company-meta { color: var(--gray-600); font-size: 13px; margin-top: 10px; }
+.company-error-msg { color: var(--red); font-size: 13px; margin-top: 6px; }
+
+.company-actions { display: flex; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--gray-200); }
+.company-actions .btn { flex: 1; padding: 10px; font-size: 14px; }
+
+.btn-danger { background: var(--red-tint); color: var(--red); }
+.btn-danger:disabled { opacity: 0.5; cursor: default; }
+
+.toggle-switch {
+  position: relative; width: 42px; height: 24px; border-radius: 999px; background: var(--gray-200);
+  border: none; cursor: pointer; flex-shrink: 0;
+}
+.toggle-switch::after {
+  content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; transition: transform 0.15s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+}
+.toggle-switch.on { background: var(--green); }
+.toggle-switch.on::after { transform: translateX(18px); }
+
+/* ---------- Modals ---------- */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(11, 18, 32, 0.5);
+  display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50;
+}
+.modal { width: 100%; max-width: 420px; }
+.modal-title { margin: 0 0 4px; font-size: 20px; }
+.modal-actions { display: flex; gap: 12px; margin-top: 20px; }
+.modal-actions .btn { flex: 1; }
+.hint-inline { font-weight: 400; color: var(--gray-600); font-size: 12px; }
+
+.creds-box { background: var(--gray-100); border-radius: var(--radius-sm); padding: 14px; margin: 14px 0; }
+.creds-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: 14px; }
+.creds-label { color: var(--gray-600); }
+.creds-value { font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; text-align: right; }

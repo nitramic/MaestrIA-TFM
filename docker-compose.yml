@@ -1,0 +1,115 @@
+services:
+  swarm-manager:
+    image: docker:27-dind
+    container_name: swarm-manager
+    hostname: swarm-manager
+    privileged: true
+    environment:
+      - DOCKER_TLS_CERTDIR=
+    command: ["dockerd", "--host=unix:///var/run/docker.sock", "--host=tcp://0.0.0.0:2375", "--insecure-registry=registry:5000"]
+    networks:
+      dind-net:
+        aliases:
+          - swarm-manager
+    volumes:
+      - manager-data:/var/lib/docker
+      - ./stack:/stack
+    ports:
+      - "2377:2377"   # swarm management
+      - "7946:7946"   # container network discovery
+      - "4789:4789/udp" # overlay network traffic
+      - "8081:8081"   # published port of the fireguard-lb stack service (routing mesh)
+      - "5001-5020:5001-5020" # rango de puertos para instancias individuales de postgres
+    healthcheck:
+      test: ["CMD", "docker", "info"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      registry:
+        condition: service_started
+
+  swarm-worker1:
+    image: docker:27-dind
+    container_name: swarm-worker1
+    hostname: swarm-worker1
+    privileged: true
+    environment:
+      - DOCKER_TLS_CERTDIR=
+    command: ["dockerd", "--host=unix:///var/run/docker.sock", "--host=tcp://0.0.0.0:2375", "--insecure-registry=registry:5000"]
+    networks:
+      dind-net:
+        aliases:
+          - swarm-worker1
+    volumes:
+      - worker1-data:/var/lib/docker
+    healthcheck:
+      test: ["CMD", "docker", "info"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      swarm-manager:
+        condition: service_healthy
+
+  swarm-worker2:
+    image: docker:27-dind
+    container_name: swarm-worker2
+    hostname: swarm-worker2
+    privileged: true
+    environment:
+      - DOCKER_TLS_CERTDIR=
+    command: ["dockerd", "--host=unix:///var/run/docker.sock", "--host=tcp://0.0.0.0:2375", "--insecure-registry=registry:5000"]
+    networks:
+      dind-net:
+        aliases:
+          - swarm-worker2
+    volumes:
+      - worker2-data:/var/lib/docker
+    healthcheck:
+      test: ["CMD", "docker", "info"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      swarm-manager:
+        condition: service_healthy
+
+  # Registro local de imágenes: cada nodo DinD tiene su propio almacén de
+  # imágenes aislado, así que necesitan un registry compartido para poder
+  # ejecutar en el swarm una imagen construida en el manager.
+  registry:
+    image: registry:2
+    container_name: dind-registry
+    hostname: registry
+    networks:
+      dind-net:
+        aliases:
+          - registry
+    volumes:
+      - registry-data:/var/lib/registry
+
+  # Optional: visualize the swarm state in a browser once it's initialized.
+  # Start with: docker compose --profile viz up -d visualizer
+  visualizer:
+    image: dockersamples/visualizer:latest
+    container_name: swarm-visualizer
+    profiles: ["viz"]
+    ports:
+      - "8080:8080"
+    environment:
+      - DOCKER_HOST=tcp://swarm-manager:2375
+    networks:
+      - dind-net
+    depends_on:
+      - swarm-manager
+
+networks:
+  dind-net:
+    driver: bridge
+
+volumes:
+  manager-data:
+  worker1-data:
+  worker2-data:
+  registry-data:

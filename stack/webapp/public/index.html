@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>FireGuard</title>
+<meta name="theme-color" content="#3B82F6" />
+<link rel="manifest" href="/manifest.json" />
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/icons/icon.svg" />
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
+<link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ===================== LOGIN VIEW ===================== -->
+  <section id="view-login" class="view">
+    <div class="login-wrap">
+      <div class="brand">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#0B1220" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2c1 3-3 4.5-3 8 0 2.5 1.8 4 3 4s3-1.5 3-4c0-1.5-1-2.5-1-3.5 2 1 3.5 3.5 3.5 6.5 0 3.5-2.7 6-5.5 6s-5.5-2.5-5.5-6c0-5 4-6.5 5.5-11z"/>
+          </svg>
+        </div>
+        <h1>FireGuard</h1>
+        <p class="subtitle">Fire Extinguisher Management</p>
+      </div>
+
+      <form id="login-form" class="card login-card" novalidate>
+        <label class="field-label" for="email">Email</label>
+        <div class="input-group">
+          <span class="input-icon">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6l9 6 9-6M3 6h18v12H3z"/></svg>
+          </span>
+          <input id="email" name="email" type="text" placeholder="your@company.com" autocomplete="username" required />
+        </div>
+
+        <label class="field-label" for="password">Password</label>
+        <div class="input-group">
+          <span class="input-icon">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+          </span>
+          <input id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required />
+          <button type="button" id="toggle-password" class="input-icon-btn" aria-label="Show password">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <p class="hint">Minimum 5 characters</p>
+
+        <div id="login-alert" class="alert alert-error hidden"></div>
+
+        <button type="submit" id="login-submit" class="btn btn-primary btn-block">Sign In</button>
+        <a href="#" class="forgot-link" tabindex="-1">Forgot password?</a>
+      </form>
+    </div>
+
+    <div class="status-bar">
+      <span id="status-dot" class="status-dot status-unknown"></span>
+      <span id="status-text">Checking connection…</span>
+    </div>
+  </section>
+
+  <!-- ===================== DASHBOARD VIEW ===================== -->
+  <section id="view-dashboard" class="view hidden">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow" data-i18n="brand.eyebrow">FireGuard</div>
+        <h1 class="page-title" data-i18n="home.title">Overview</h1>
+      </div>
+      <div class="topbar-actions">
+        <button id="search-toggle" class="icon-btn" aria-label="Search">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        </button>
+        <button class="icon-btn" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+          <span class="dot-badge"></span>
+        </button>
+        <button id="logout-btn" class="icon-btn" aria-label="Sign out" title="Sign out">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div id="search-bar" class="search-bar hidden">
+      <input id="search-input" type="text" placeholder="Search by code or location…" />
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2c1 3-3 4.5-3 8 0 2.5 1.8 4 3 4s3-1.5 3-4c0-1.5-1-2.5-1-3.5 2 1 3.5 3.5 3.5 6.5 0 3.5-2.7 6-5.5 6s-5.5-2.5-5.5-6c0-5 4-6.5 5.5-11z"/></svg> <span data-i18n="home.totalUnits">Total Units</span></div>
+        <div id="stat-total" class="stat-value">0</div>
+      </div>
+      <div class="stat-card stat-card-active">
+        <div class="stat-label"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg> <span data-i18n="status.ok">OK</span></div>
+        <div id="stat-ok" class="stat-value">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg> <span data-i18n="status.overdue">Overdue</span></div>
+        <div id="stat-overdue" class="stat-value">0</div>
+      </div>
+    </div>
+
+    <div id="overdue-banner" class="banner banner-error hidden">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><path d="M10.3 3.9L2.4 18a1.5 1.5 0 001.3 2.2h16.6a1.5 1.5 0 001.3-2.2L13.7 3.9a1.5 1.5 0 00-2.6 0z"/><path d="M12 17h.01"/></svg>
+      <div>
+        <div class="banner-title" id="overdue-banner-title"></div>
+        <div class="banner-sub" data-i18n="home.immediateInspection">Immediate inspection required.</div>
+      </div>
+    </div>
+
+    <div class="units-header">
+      <h2 data-i18n="home.allUnits">All Units</h2>
+      <button class="link-btn" id="sort-btn"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M7 12h10M10 18h4"/></svg> <span data-i18n="home.sort">Sort</span></button>
+    </div>
+
+    <div class="filter-row" id="filter-row">
+      <button class="chip chip-active" data-filter="all" data-i18n="filter.all">All</button>
+      <button class="chip" data-filter="ok" data-i18n="status.ok">OK</button>
+      <button class="chip" data-filter="due_soon" data-i18n="status.dueSoon">Due Soon</button>
+      <button class="chip" data-filter="overdue" data-i18n="status.overdue">Overdue</button>
+    </div>
+
+    <div id="units-list" class="units-list"></div>
+    <div id="units-empty" class="empty-state hidden">No extinguishers found.</div>
+  </section>
+
+  <!-- ===================== UNITS VIEW (map) ===================== -->
+  <section id="view-units" class="view hidden">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow" data-i18n="brand.eyebrow">FireGuard</div>
+        <h1 class="page-title" data-i18n="units.title">Units</h1>
+      </div>
+    </header>
+    <p class="hint map-hint" data-i18n="units.hint">Tap a bubble to see extinguishers that need inspection at that site.</p>
+    <div id="units-map" class="units-map"></div>
+    <div class="map-legend">
+      <span class="legend-item"><span class="legend-dot legend-dot-ok"></span> <span data-i18n="units.legend.ok">All OK</span></span>
+      <span class="legend-item"><span class="legend-dot legend-dot-warn"></span> <span data-i18n="units.legend.needs">Needs inspection</span></span>
+    </div>
+  </section>
+
+  <!-- ===================== INSPECT VIEW ===================== -->
+  <section id="view-inspect" class="view hidden">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow" data-i18n="brand.eyebrow">FireGuard</div>
+        <h1 class="page-title" data-i18n="inspect.title">Inspect</h1>
+      </div>
+    </header>
+    <div id="inspect-filter-banner" class="banner banner-info hidden">
+      <div>
+        <div class="banner-title" id="inspect-filter-title"></div>
+        <button class="link-btn" id="inspect-clear-filter" data-i18n="inspect.clearFilter">Show all pending</button>
+      </div>
+    </div>
+    <div id="inspect-list" class="units-list"></div>
+    <div id="inspect-empty" class="empty-state hidden" data-i18n="inspect.empty">Nothing pending inspection.</div>
+  </section>
+
+  <!-- ===================== REPORTS VIEW ===================== -->
+  <section id="view-reports" class="view hidden">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow" data-i18n="brand.eyebrow">FireGuard</div>
+        <h1 class="page-title" data-i18n="reports.title">Reports</h1>
+      </div>
+    </header>
+    <div class="reports-body">
+      <div class="card report-card">
+        <h2 class="report-card-title" data-i18n="reports.summary">Status summary</h2>
+        <canvas id="chart-summary" height="220"></canvas>
+      </div>
+      <div class="card report-card">
+        <h2 class="report-card-title" data-i18n="reports.activity">Inspected vs. resolved (last 30 days)</h2>
+        <canvas id="chart-activity" height="200"></canvas>
+      </div>
+      <div class="card report-card">
+        <h2 class="report-card-title" data-i18n="reports.forecast">Interventions needed — next 12 months</h2>
+        <canvas id="chart-forecast" height="220"></canvas>
+      </div>
+      <div class="card report-card">
+        <div class="report-card-head">
+          <h2 class="report-card-title" data-i18n="reports.forecastByType">Interventions by extinguisher type</h2>
+          <select id="forecast-type-filter" class="input select report-type-select">
+            <option value="" data-i18n="reports.allTypes">All types</option>
+          </select>
+        </div>
+        <canvas id="chart-forecast-type" height="220"></canvas>
+      </div>
+      <div class="card report-card">
+        <h2 class="report-card-title" data-i18n="reports.log">Last 10 interventions</h2>
+        <div id="reports-log" class="reports-log"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== SETTINGS VIEW ===================== -->
+  <section id="view-settings" class="view hidden">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow" data-i18n="brand.eyebrow">FireGuard</div>
+        <h1 class="page-title" data-i18n="settings.title">Settings</h1>
+      </div>
+    </header>
+    <div class="settings-body">
+      <div class="card settings-card">
+        <label class="field-label" for="setting-language" data-i18n="settings.language">Language</label>
+        <select id="setting-language" class="input select">
+          <option value="es">Español</option>
+          <option value="it">Italiano</option>
+          <option value="en">English</option>
+        </select>
+
+        <label class="field-label" for="setting-theme" data-i18n="settings.theme">Appearance</label>
+        <select id="setting-theme" class="input select">
+          <option value="system" data-i18n="settings.theme.system">System</option>
+          <option value="light" data-i18n="settings.theme.light">Light</option>
+          <option value="dark" data-i18n="settings.theme.dark">Dark</option>
+        </select>
+
+        <label class="field-label" for="setting-timezone" data-i18n="settings.timezone">Region &amp; time zone</label>
+        <select id="setting-timezone" class="input select">
+          <option value="Europe/Madrid">Europe/Madrid</option>
+          <option value="Europe/Rome">Europe/Rome</option>
+          <option value="Europe/London">Europe/London</option>
+          <option value="Europe/Paris">Europe/Paris</option>
+          <option value="America/New_York">America/New_York</option>
+          <option value="America/Bogota">America/Bogota</option>
+          <option value="America/Mexico_City">America/Mexico_City</option>
+          <option value="America/Argentina/Buenos_Aires">America/Argentina/Buenos_Aires</option>
+        </select>
+        <div id="settings-toast" class="toast hidden"></div>
+      </div>
+
+      <div class="card settings-card">
+        <h2 class="report-card-title" data-i18n="settings.password">Change password</h2>
+        <label class="field-label" for="setting-current-password" data-i18n="settings.currentPassword">Current password</label>
+        <input id="setting-current-password" class="input" type="password" autocomplete="current-password" />
+        <label class="field-label" for="setting-new-password" data-i18n="settings.newPassword">New password</label>
+        <input id="setting-new-password" class="input" type="password" autocomplete="new-password" />
+        <button type="button" id="settings-password-btn" class="btn btn-primary btn-block" data-i18n="settings.updatePassword">Update password</button>
+        <div id="settings-password-alert" class="alert alert-error hidden"></div>
+      </div>
+
+      <div id="settings-admin-card" class="card settings-card hidden">
+        <h2 class="report-card-title" data-i18n="settings.users">Company users</h2>
+        <div id="settings-users-list" class="settings-users-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <nav id="bottom-nav" class="bottom-nav">
+    <div class="nav-item" data-view="dashboard"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10l9-7 9 7"/><path d="M5 9v11h14V9"/></svg><span data-i18n="nav.home">Home</span></div>
+    <div class="nav-item" data-view="units"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2c1 3-3 4.5-3 8 0 2.5 1.8 4 3 4s3-1.5 3-4c0-1.5-1-2.5-1-3.5 2 1 3.5 3.5 3.5 6.5 0 3.5-2.7 6-5.5 6s-5.5-2.5-5.5-6c0-5 4-6.5 5.5-11z"/></svg><span data-i18n="nav.units">Units</span></div>
+    <div class="nav-item" data-view="inspect"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9z"/><path d="M9 12l2 2 4-4"/></svg><span data-i18n="nav.inspect">Inspect</span></div>
+    <div class="nav-item" data-view="reports"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M12 20V4M20 20v-7"/></svg><span data-i18n="nav.reports">Reports</span></div>
+    <div class="nav-item" data-view="settings"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg><span data-i18n="nav.settings">Settings</span></div>
+  </nav>
+
+
+
+  <!-- ===================== DETAIL VIEW ===================== -->
+  <section id="view-detail" class="view hidden">
+    <header class="detail-topbar">
+      <button id="back-btn" class="link-btn"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> Back</button>
+      <h1 id="detail-code" class="detail-title">EXT-000</h1>
+      <button class="icon-btn" aria-label="More">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+      </button>
+    </header>
+
+    <div class="detail-body">
+      <div class="card location-card">
+        <div class="location-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#3B82F6" stroke-width="2"><path d="M12 22s7-7.5 7-13a7 7 0 10-14 0c0 5.5 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
+        </div>
+        <div>
+          <div class="field-label">Location</div>
+          <div id="detail-location" class="location-value">—</div>
+        </div>
+      </div>
+
+      <div class="field-label">Status</div>
+      <div class="status-segment" id="status-segment">
+        <div class="segment-btn" data-status="ok">OK</div>
+        <div class="segment-btn" data-status="due_soon">Due Soon</div>
+        <div class="segment-btn" data-status="overdue">Overdue</div>
+      </div>
+
+      <label class="field-label" for="detail-type">Type</label>
+      <select id="detail-type" class="input select">
+        <option>ABC Dry Powder</option>
+        <option>CO₂ Gas</option>
+        <option>Wet Chemical</option>
+        <option>Foam</option>
+        <option>Water</option>
+      </select>
+
+      <label class="field-label" for="detail-weight">Weight</label>
+      <div class="input-group">
+        <input id="detail-weight" class="input" type="text" disabled />
+        <span class="input-icon-btn" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+        </span>
+      </div>
+
+      <label class="field-label" for="detail-pressure">Pressure</label>
+      <input id="detail-pressure" class="input" type="text" />
+
+      <button type="button" id="inspect-now-btn" class="btn btn-secondary btn-block">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/><path d="M9 15l2 2 4-4"/></svg>
+        Set Today as Inspection Date
+      </button>
+      <p class="hint">Sets Last Inspected to today and Next Due to one year from today.</p>
+
+      <label class="field-label" for="detail-last-inspected">Last Inspected</label>
+      <div class="input-group">
+        <span class="input-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg></span>
+        <input id="detail-last-inspected" class="input" type="date" />
+      </div>
+
+      <label class="field-label" for="detail-next-due">Next Due</label>
+      <div class="input-group">
+        <span class="input-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg></span>
+        <input id="detail-next-due" class="input" type="date" />
+      </div>
+
+      <label class="field-label" for="detail-serial">Serial Number</label>
+      <input id="detail-serial" class="input" type="text" />
+
+      <div id="detail-alert" class="banner banner-error hidden">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><path d="M10.3 3.9L2.4 18a1.5 1.5 0 001.3 2.2h16.6a1.5 1.5 0 001.3-2.2L13.7 3.9a1.5 1.5 0 00-2.6 0z"/><path d="M12 17h.01"/></svg>
+        <div>
+          <div class="banner-title" id="detail-alert-title">Inspection Overdue</div>
+          <div class="banner-sub" id="detail-alert-sub">This extinguisher requires immediate inspection.</div>
+        </div>
+      </div>
+
+      <div id="detail-toast" class="toast hidden"></div>
+    </div>
+
+    <div class="detail-footer">
+      <button id="cancel-btn" class="btn btn-outline">Cancel</button>
+      <button id="save-btn" class="btn btn-primary">Save Changes</button>
+    </div>
+  </section>
+
+</div>
+
+<script src="/vendor/leaflet/leaflet.js"></script>
+<script src="/vendor/chartjs/chart.umd.js"></script>
+<script src="/js/i18n.js"></script>
+<script src="/js/app.js"></script>
+</body>
+</html>

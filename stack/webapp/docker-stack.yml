@@ -1,0 +1,75 @@
+services:
+  app1:
+    image: registry:5000/fireguard-webapp:latest
+    environment: &app_env
+      - DIRECTORY_DB_HOST=pg-directory
+      - DIRECTORY_DB_PORT=5432
+      - DIRECTORY_DB_NAME=directory
+      - DIRECTORY_DB_USER=postgres
+      - DIRECTORY_DB_PASSWORD=postgres
+      - JWT_SECRET=62b960ad53e105c1ea31bce0b7ac0b44e1d0b7fe6d988c1f3a66848cf9d28c0c
+      - INTERNAL_ADMIN_TOKEN=01ce3c0c69e0c106c298a176383b52274a2dc51652b22c88
+    networks:
+      - fireguard-net
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.hostname == swarm-worker1]
+      restart_policy:
+        condition: any
+
+  app2:
+    image: registry:5000/fireguard-webapp:latest
+    environment: *app_env
+    networks:
+      - fireguard-net
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.hostname == swarm-worker2]
+      restart_policy:
+        condition: any
+
+  lb:
+    image: registry:5000/fireguard-lb:latest
+    networks:
+      - fireguard-net
+    ports:
+      - "8081:80"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+
+  # Privileged, internal-only provisioning worker for the /admin panel: the
+  # only service with the Docker socket mounted (to create/remove per-company
+  # postgres services), and never published to the host. app1/app2 reach it
+  # over fireguard-net at http://admin-worker:3000, authenticated with
+  # INTERNAL_ADMIN_TOKEN. Pinned to swarm-manager because that's the node
+  # whose docker.sock has swarm-manager API access.
+  admin-worker:
+    image: registry:5000/fireguard-webapp:latest
+    environment:
+      - DIRECTORY_DB_HOST=pg-directory
+      - DIRECTORY_DB_PORT=5432
+      - DIRECTORY_DB_NAME=directory
+      - DIRECTORY_DB_USER=postgres
+      - DIRECTORY_DB_PASSWORD=postgres
+      - JWT_SECRET=62b960ad53e105c1ea31bce0b7ac0b44e1d0b7fe6d988c1f3a66848cf9d28c0c
+      - INTERNAL_ADMIN_TOKEN=01ce3c0c69e0c106c298a176383b52274a2dc51652b22c88
+      - DOCKER_SOCKET=/var/run/docker.sock
+      - FIREGUARD_NETWORK=fireguard-net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - fireguard-net
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.hostname == swarm-manager]
+      restart_policy:
+        condition: any
+
+networks:
+  fireguard-net:
+    external: true

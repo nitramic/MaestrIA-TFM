@@ -1,0 +1,37 @@
+services:
+  web1:
+    image: registry:5000/php-apache:latest
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == worker]
+      restart_policy:
+        condition: any
+    networks:
+      - appnet
+
+  web2:
+    image: registry:5000/php-apache:latest
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == worker]
+      restart_policy:
+        condition: any
+    networks:
+      - appnet
+
+  lb:
+    image: registry:5000/apache-lb:latest
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+    ports:
+      - "8081:80"
+    networks:
+      - appnet
+
+networks:
+  appnet:
+    driver: overlay
