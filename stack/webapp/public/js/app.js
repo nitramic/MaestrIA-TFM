@@ -721,6 +721,7 @@
       navigateTo('dashboard');
     } catch (e) {
       show('login');
+      bottomNav.classList.add('hidden');
     }
 
     if ('serviceWorker' in navigator) {

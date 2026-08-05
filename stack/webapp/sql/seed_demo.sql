@@ -1,17 +1,17 @@
--- Demo data for the "emp01" company database.
--- Login: admin@emp01 / Demo1234!
+-- Demo data for the "demo" company database.
+-- Login: admin@demo / Demo1234!
 INSERT INTO users (email, password_hash, full_name, role)
-VALUES ('admin@emp01', '$2b$10$YMmPtiyekZfq02FJUZ/KqeyCYsqnk7rPH28GsgGT4pzdpoLZdTkbq', 'Admin Emp01', 'admin')
+VALUES ('admin@demo', '$2b$10$YMmPtiyekZfq02FJUZ/KqeyCYsqnk7rPH28GsgGT4pzdpoLZdTkbq', 'Admin Demo', 'admin')
 ON CONFLICT (email) DO NOTHING;
 
--- Second demo login: inspector@emp01 / Demo1234! (non-admin, for testing role-gated Settings)
+-- Second demo login: inspector@demo / Demo1234! (non-admin, for testing role-gated Settings)
 INSERT INTO users (email, password_hash, full_name, role)
-VALUES ('inspector@emp01', '$2b$10$YMmPtiyekZfq02FJUZ/KqeyCYsqnk7rPH28GsgGT4pzdpoLZdTkbq', 'Inspector Emp01', 'inspector')
+VALUES ('inspector@demo', '$2b$10$YMmPtiyekZfq02FJUZ/KqeyCYsqnk7rPH28GsgGT4pzdpoLZdTkbq', 'Inspector Demo', 'inspector')
 ON CONFLICT (email) DO NOTHING;
 
 -- A locked-out demo account, to exercise the admin "unlock" action.
 INSERT INTO users (email, password_hash, full_name, role, locked)
-VALUES ('locked@emp01', '$2b$10$YMmPtiyekZfq02FJUZ/KqeyCYsqnk7rPH28GsgGT4pzdpoLZdTkbq', 'Inspector Bloqueado', 'inspector', true)
+VALUES ('locked@demo', '$2b$10$YMmPtiyekZfq02FJUZ/KqeyCYsqnk7rPH28GsgGT4pzdpoLZdTkbq', 'Inspector Bloqueado', 'inspector', true)
 ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO sites (name, lat, lng) VALUES
@@ -59,7 +59,7 @@ ON CONFLICT (code) DO NOTHING;
 -- Sample inspection history so the Reports log/stats aren't empty on first login.
 INSERT INTO inspection_history (extinguisher_id, action, previous_status, new_status, performed_by, performed_at)
 SELECT e.id, h.action, h.previous_status, h.new_status,
-       (SELECT id FROM users WHERE email = 'admin@emp01'), h.performed_at
+       (SELECT id FROM users WHERE email = 'admin@demo'), h.performed_at
 FROM (VALUES
   ('EXT-002', 'status_change', 'overdue', 'ok', now() - interval '2 days'),
   ('EXT-014', 'inspected', 'ok', 'ok', now() - interval '5 days'),

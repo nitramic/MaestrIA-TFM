@@ -1,4 +1,4 @@
--- Runs against a per-company database (e.g. pg-emp01 / db "emp01").
+-- Runs against a per-company database (e.g. pg-<slug> / db "<slug>").
 -- Applied once per company when it's onboarded.
 
 CREATE TABLE IF NOT EXISTS users (

@@ -6,17 +6,14 @@
 #    per-company postgres services
 #  - a "pg-directory" postgres service (db "directory") holding the
 #    company slug -> db connection mapping used at login time
-#  - attaches "fireguard-net" to the existing pg-emp01 service
-#  - applies sql/directory_schema.sql (+ seeds "emp01") and
-#    sql/company_schema.sql + sql/seed_emp01.sql (demo data)
+#  - applies sql/directory_schema.sql
 #  - builds+pushes the webapp image (2 replicas: app1 on swarm-worker1,
 #    app2 on swarm-worker2) and the Apache load-balancer image in front of
 #    them, and deploys the "fireguard" stack (published on
 #    http://localhost:8081)
 #
-# Run after ./init-swarm.sh and ./deploy-postgres.sh emp01 postgres postgres
-# (or adjust sql/directory_schema.sql if emp01 was deployed with different
-# credentials/port).
+# Run after ./init-swarm.sh. Companies (and their per-company postgres
+# service) are onboarded afterwards via the /admin panel or add-company.sh.
 set -euo pipefail
 
 COMPOSE="docker compose"
@@ -48,22 +45,6 @@ else
   echo "    already exists."
 fi
 
-echo "==> Attaching '${NETWORK}' to pg-emp01 (if not already attached)..."
-if exec_manager docker service inspect pg-emp01 >/dev/null 2>&1; then
-  ATTACH_OUT=$(exec_manager docker service update --network-add "${NETWORK}" pg-emp01 2>&1) && {
-    echo "    attached (service is rolling restart)."
-  } || {
-    if echo "${ATTACH_OUT}" | grep -qi "already attached"; then
-      echo "    already attached."
-    else
-      echo "${ATTACH_OUT}" >&2
-      exit 1
-    fi
-  }
-else
-  echo "    WARNING: pg-emp01 service not found. Run ./deploy-postgres.sh emp01 postgres postgres first."
-fi
-
 wait_for_container() {
   local name_filter="$1" tries=30
   local cid=""
@@ -92,8 +73,6 @@ run_sql() {
 }
 
 run_sql "pg-directory" "directory" "stack/webapp/sql/directory_schema.sql"
-run_sql "pg-emp01" "emp01" "stack/webapp/sql/company_schema.sql"
-run_sql "pg-emp01" "emp01" "stack/webapp/sql/seed_emp01.sql"
 
 echo "==> Building registry:5000/fireguard-webapp image..."
 exec_manager docker build -t registry:5000/fireguard-webapp:latest /stack/webapp
@@ -122,7 +101,6 @@ Panel de administracion (alta/baja/suspension de empresas):
   Usuario:  superadmin@fireguard.local
   Password: SuperAdmin1234!
 
-Login de prueba (empresa emp01):
-  Usuario:  admin@emp01
-  Password: Demo1234!
+Sin empresas dadas de alta todavia. Usa el panel de administracion o
+./add-company.sh para dar de alta la primera.
 EOF
