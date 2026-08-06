@@ -54,7 +54,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      'SELECT id, email, password_hash, role, full_name, failed_attempts, locked_until, locked, language, theme, timezone FROM users WHERE lower(email) = lower($1)',
+      'SELECT id, email, password_hash, role, full_name, failed_attempts, locked_until, locked, timezone FROM users WHERE lower(email) = lower($1)',
       [email]
     );
 
@@ -113,8 +113,6 @@ router.post('/login', loginLimiter, async (req, res) => {
         fullName: user.full_name,
         role: user.role,
         companyName: company.display_name,
-        language: user.language,
-        theme: user.theme,
         timezone: user.timezone,
       },
     });

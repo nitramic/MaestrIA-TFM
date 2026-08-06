@@ -5,9 +5,6 @@ const { requireAuth, requireCompanyAdmin } = require('../auth');
 
 const router = express.Router();
 
-const ALLOWED_LANGUAGES = ['es', 'it', 'en'];
-const ALLOWED_THEMES = ['system', 'light', 'dark'];
-
 async function poolForRequest(req, res) {
   const entry = await getCompanyPool(req.session.slug);
   if (!entry) {
@@ -22,12 +19,12 @@ router.get('/me', requireAuth, async (req, res) => {
   if (!pool) return;
   try {
     const { rows } = await pool.query(
-      'SELECT email, full_name, role, language, theme, timezone FROM users WHERE id = $1',
+      'SELECT email, full_name, role, timezone FROM users WHERE id = $1',
       [req.session.userId]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
     const u = rows[0];
-    res.json({ email: u.email, fullName: u.full_name, role: u.role, language: u.language, theme: u.theme, timezone: u.timezone });
+    res.json({ email: u.email, fullName: u.full_name, role: u.role, timezone: u.timezone });
   } catch (err) {
     res.status(503).json({ error: 'No se pudo contactar la base de datos.' });
   }
@@ -36,31 +33,22 @@ router.get('/me', requireAuth, async (req, res) => {
 router.put('/me', requireAuth, async (req, res) => {
   const pool = await poolForRequest(req, res);
   if (!pool) return;
-  const { language, theme, timezone } = req.body || {};
+  const { timezone } = req.body || {};
 
-  if (language !== undefined && !ALLOWED_LANGUAGES.includes(language)) {
-    return res.status(400).json({ error: 'Idioma inválido.' });
-  }
-  if (theme !== undefined && !ALLOWED_THEMES.includes(theme)) {
-    return res.status(400).json({ error: 'Tema inválido.' });
-  }
   if (timezone !== undefined && (typeof timezone !== 'string' || timezone.length > 64)) {
     return res.status(400).json({ error: 'Zona horaria inválida.' });
   }
 
   try {
     const { rows } = await pool.query(
-      `UPDATE users SET
-         language = COALESCE($1, language),
-         theme = COALESCE($2, theme),
-         timezone = COALESCE($3, timezone)
-       WHERE id = $4
-       RETURNING email, full_name, role, language, theme, timezone`,
-      [language, theme, timezone, req.session.userId]
+      `UPDATE users SET timezone = COALESCE($1, timezone)
+       WHERE id = $2
+       RETURNING email, full_name, role, timezone`,
+      [timezone, req.session.userId]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
     const u = rows[0];
-    res.json({ email: u.email, fullName: u.full_name, role: u.role, language: u.language, theme: u.theme, timezone: u.timezone });
+    res.json({ email: u.email, fullName: u.full_name, role: u.role, timezone: u.timezone });
   } catch (err) {
     res.status(503).json({ error: 'No se pudo contactar la base de datos.' });
   }
