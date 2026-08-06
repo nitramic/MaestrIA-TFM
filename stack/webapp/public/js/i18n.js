@@ -74,6 +74,8 @@
       'forgot.done': 'Listo',
 
       'home.noResults': 'No se encontraron extintores.',
+      'home.overdueSingular': 'extintor vencido',
+      'home.overduePlural': 'extintores vencidos',
 
       'card.type': 'Tipo',
       'card.weight': 'Peso',
@@ -264,6 +266,8 @@
       'forgot.done': 'Fatto',
 
       'home.noResults': 'Nessun estintore trovato.',
+      'home.overdueSingular': 'estintore scaduto',
+      'home.overduePlural': 'estintori scaduti',
 
       'card.type': 'Tipo',
       'card.weight': 'Peso',
@@ -454,6 +458,8 @@
       'forgot.done': 'Done',
 
       'home.noResults': 'No extinguishers found.',
+      'home.overdueSingular': 'extinguisher is overdue',
+      'home.overduePlural': 'extinguishers are overdue',
 
       'card.type': 'Type',
       'card.weight': 'Weight',

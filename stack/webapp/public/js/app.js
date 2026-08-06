@@ -310,7 +310,7 @@
     const banner = document.getElementById('overdue-banner');
     if (state.summary.overdue > 0) {
       document.getElementById('overdue-banner-title').textContent =
-        `${state.summary.overdue} extinguisher${state.summary.overdue === 1 ? ' is' : 's are'} overdue`;
+        `${state.summary.overdue} ${t(state.summary.overdue === 1 ? 'home.overdueSingular' : 'home.overduePlural')}`;
       banner.classList.remove('hidden');
     } else {
       banner.classList.add('hidden');
