@@ -757,11 +757,45 @@
     }
   }
 
+  // ---------------- Login screen prefs (language / theme) ----------------
+  const langSelect = document.getElementById('lang-select');
+  const themeToggleBtn = document.getElementById('theme-toggle-btn');
+  const themeIconSun = document.getElementById('theme-icon-sun');
+  const themeIconMoon = document.getElementById('theme-icon-moon');
+
+  function syncThemeIcon(theme) {
+    const effective = window.FireGuardPrefs.effectiveTheme(theme);
+    themeIconSun.classList.toggle('hidden', effective === 'dark');
+    themeIconMoon.classList.toggle('hidden', effective !== 'dark');
+  }
+
+  function applyStoredPrefs() {
+    const lang = window.FireGuardPrefs.getPreferredLang();
+    const theme = window.FireGuardPrefs.getPreferredTheme();
+    window.FireGuardI18n.applyI18n(lang);
+    window.FireGuardPrefs.applyTheme(theme);
+    langSelect.value = lang;
+    syncThemeIcon(theme);
+  }
+
+  langSelect.addEventListener('change', () => {
+    window.FireGuardPrefs.setPreferredLang(langSelect.value);
+    window.FireGuardI18n.applyI18n(langSelect.value);
+  });
+
+  themeToggleBtn.addEventListener('click', () => {
+    const current = window.FireGuardPrefs.effectiveTheme(window.FireGuardPrefs.getPreferredTheme());
+    const next = current === 'dark' ? 'light' : 'dark';
+    window.FireGuardPrefs.setPreferredTheme(next);
+    window.FireGuardPrefs.applyTheme(next);
+    syncThemeIcon(next);
+  });
+
   // ---------------- Boot ----------------
   async function boot() {
     checkHealth();
     setInterval(checkHealth, 30000);
-    window.FireGuardI18n.applyI18n('es');
+    applyStoredPrefs();
 
     try {
       const me = await api('/auth/me');
