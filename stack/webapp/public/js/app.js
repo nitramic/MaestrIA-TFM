@@ -124,6 +124,15 @@
     pw.type = pw.type === 'password' ? 'text' : 'password';
   });
 
+  // ---------------- Caps Lock warning ----------------
+  const capsWarning = document.getElementById('caps-warning');
+  document.getElementById('password').addEventListener('keyup', (e) => {
+    capsWarning.classList.toggle('hidden', !e.getModifierState('CapsLock'));
+  });
+  document.getElementById('password').addEventListener('blur', () => {
+    capsWarning.classList.add('hidden');
+  });
+
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     loginAlert.classList.add('hidden');
@@ -158,6 +167,54 @@
       loginSubmit.disabled = false;
       loginSubmit.textContent = 'Sign In';
     }
+  });
+
+  // ---------------- Forgot password ----------------
+  const forgotModal = document.getElementById('modal-forgot-password');
+  const forgotFormState = document.getElementById('forgot-form-state');
+  const forgotSentState = document.getElementById('forgot-sent-state');
+  const forgotAlert = document.getElementById('forgot-alert');
+  const forgotEmailInput = document.getElementById('forgot-email');
+  const forgotSubmitBtn = document.getElementById('forgot-submit-btn');
+
+  document.getElementById('forgot-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    forgotEmailInput.value = document.getElementById('email').value.trim();
+    forgotAlert.classList.add('hidden');
+    forgotFormState.classList.remove('hidden');
+    forgotSentState.classList.add('hidden');
+    forgotModal.classList.remove('hidden');
+  });
+
+  document.getElementById('forgot-cancel-btn').addEventListener('click', () => {
+    forgotModal.classList.add('hidden');
+  });
+
+  forgotSubmitBtn.addEventListener('click', async () => {
+    const email = forgotEmailInput.value.trim();
+    forgotAlert.classList.add('hidden');
+    if (!email) {
+      forgotAlert.textContent = 'Ingresá tu email.';
+      forgotAlert.classList.remove('hidden');
+      return;
+    }
+    forgotSubmitBtn.disabled = true;
+    forgotSubmitBtn.textContent = 'Enviando…';
+    try {
+      await api('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) });
+      forgotFormState.classList.add('hidden');
+      forgotSentState.classList.remove('hidden');
+    } catch (err) {
+      forgotAlert.textContent = (err.data && err.data.error) || 'No se pudo enviar la solicitud.';
+      forgotAlert.classList.remove('hidden');
+    } finally {
+      forgotSubmitBtn.disabled = false;
+      forgotSubmitBtn.textContent = 'Enviar solicitud';
+    }
+  });
+
+  document.getElementById('forgot-done-btn').addEventListener('click', () => {
+    forgotModal.classList.add('hidden');
   });
 
   document.getElementById('logout-btn').addEventListener('click', async () => {
@@ -700,11 +757,45 @@
     }
   }
 
+  // ---------------- Login screen prefs (language / theme) ----------------
+  const langSelect = document.getElementById('lang-select');
+  const themeToggleBtn = document.getElementById('theme-toggle-btn');
+  const themeIconSun = document.getElementById('theme-icon-sun');
+  const themeIconMoon = document.getElementById('theme-icon-moon');
+
+  function syncThemeIcon(theme) {
+    const effective = window.FireGuardPrefs.effectiveTheme(theme);
+    themeIconSun.classList.toggle('hidden', effective === 'dark');
+    themeIconMoon.classList.toggle('hidden', effective !== 'dark');
+  }
+
+  function applyStoredPrefs() {
+    const lang = window.FireGuardPrefs.getPreferredLang();
+    const theme = window.FireGuardPrefs.getPreferredTheme();
+    window.FireGuardI18n.applyI18n(lang);
+    window.FireGuardPrefs.applyTheme(theme);
+    langSelect.value = lang;
+    syncThemeIcon(theme);
+  }
+
+  langSelect.addEventListener('change', () => {
+    window.FireGuardPrefs.setPreferredLang(langSelect.value);
+    window.FireGuardI18n.applyI18n(langSelect.value);
+  });
+
+  themeToggleBtn.addEventListener('click', () => {
+    const current = window.FireGuardPrefs.effectiveTheme(window.FireGuardPrefs.getPreferredTheme());
+    const next = current === 'dark' ? 'light' : 'dark';
+    window.FireGuardPrefs.setPreferredTheme(next);
+    window.FireGuardPrefs.applyTheme(next);
+    syncThemeIcon(next);
+  });
+
   // ---------------- Boot ----------------
   async function boot() {
     checkHealth();
     setInterval(checkHealth, 30000);
-    window.FireGuardI18n.applyI18n('es');
+    applyStoredPrefs();
 
     try {
       const me = await api('/auth/me');
@@ -721,6 +812,7 @@
       navigateTo('dashboard');
     } catch (e) {
       show('login');
+      bottomNav.classList.add('hidden');
     }
 
     if ('serviceWorker' in navigator) {

@@ -94,7 +94,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     }
 
     await pool.query(
-      'UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = $1',
+      'UPDATE users SET failed_attempts = 0, locked_until = NULL, last_login_at = now() WHERE id = $1',
       [user.id]
     );
 
@@ -121,6 +121,34 @@ router.post('/login', loginLimiter, async (req, res) => {
   } catch (err) {
     return res.status(503).json({ error: 'No se pudo contactar la base de datos.' });
   }
+});
+
+// Always responds the same way regardless of whether the email/company
+// exists, to avoid leaking account existence. The actual reset happens
+// out-of-band: support sees the pending request against the user in the
+// admin panel's company user list and resets the password from there.
+router.post('/forgot-password', loginLimiter, async (req, res) => {
+  const { email } = req.body || {};
+  if (!email || typeof email !== 'string') {
+    return res.status(400).json({ error: 'Debe ingresar un email.' });
+  }
+
+  const slug = slugFromEmail(email);
+  if (slug) {
+    try {
+      const entry = await getCompanyPool(slug);
+      if (entry) {
+        await entry.pool.query(
+          'UPDATE users SET password_reset_requested_at = now() WHERE lower(email) = lower($1)',
+          [email]
+        );
+      }
+    } catch (err) {
+      // swallow -- response must not reveal whether anything actually happened
+    }
+  }
+
+  res.json({ success: true });
 });
 
 router.post('/logout', (req, res) => {

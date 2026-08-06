@@ -34,16 +34,6 @@ CREATE TABLE IF NOT EXISTS admin_users (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-INSERT INTO companies (slug, display_name, db_host, db_port, db_name, db_user, db_password, status)
-VALUES ('emp01', 'Empresa 01', 'pg-emp01', 5432, 'emp01', 'postgres', 'postgres', 'ready')
-ON CONFLICT (slug) DO UPDATE SET
-  display_name = EXCLUDED.display_name,
-  db_host = EXCLUDED.db_host,
-  db_port = EXCLUDED.db_port,
-  db_name = EXCLUDED.db_name,
-  db_user = EXCLUDED.db_user,
-  db_password = EXCLUDED.db_password;
-
 -- Demo login: superadmin@fireguard.local / SuperAdmin1234!
 INSERT INTO admin_users (email, password_hash, full_name)
 VALUES ('superadmin@fireguard.local', '$2b$10$TlLOEDlfPHFz5/xHhleyw.VmMn4lZnMYcWiMmOAVW5kz4db/MEz6.', 'Super Admin')

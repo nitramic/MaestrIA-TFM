@@ -1,6 +1,9 @@
 (function () {
   'use strict';
 
+  const t = (key) => window.FireGuardI18n.t(key);
+  const dateLocale = () => ({ es: 'es-ES', it: 'it-IT', en: 'en-US' }[window.FireGuardI18n.currentLang] || 'es-ES');
+
   const views = {
     login: document.getElementById('view-admin-login'),
     dashboard: document.getElementById('view-admin-dashboard'),
@@ -35,17 +38,69 @@
     try {
       const res = await fetch('/api/health', { credentials: 'same-origin' });
       dot.className = res.ok ? 'status-dot status-ready' : 'status-dot status-down';
-      text.textContent = res.ok ? 'Listo para trabajar' : 'Sistema no disponible';
+      text.textContent = res.ok ? t('admin.ready') : t('admin.systemDown');
     } catch (e) {
       dot.className = 'status-dot status-down';
-      text.textContent = 'Sistema no disponible';
+      text.textContent = t('admin.systemDown');
     }
   }
+
+  // ---------------- Language / theme prefs ----------------
+  // Two copies of the controls exist (login screen + dashboard topbar); keep
+  // both in sync with the same cookie-backed preference.
+  const langSelects = [document.getElementById('lang-select'), document.getElementById('admin-lang-select')];
+  const themeToggleBtns = [document.getElementById('theme-toggle-btn'), document.getElementById('admin-theme-toggle-btn')];
+  const themeSunIcons = [document.getElementById('theme-icon-sun'), document.getElementById('admin-theme-icon-sun')];
+  const themeMoonIcons = [document.getElementById('theme-icon-moon'), document.getElementById('admin-theme-icon-moon')];
+
+  function syncThemeIcons(theme) {
+    const effective = window.FireGuardPrefs.effectiveTheme(theme);
+    themeSunIcons.forEach((el) => el.classList.toggle('hidden', effective === 'dark'));
+    themeMoonIcons.forEach((el) => el.classList.toggle('hidden', effective !== 'dark'));
+  }
+
+  function applyStoredPrefs() {
+    const lang = window.FireGuardPrefs.getPreferredLang();
+    const theme = window.FireGuardPrefs.getPreferredTheme();
+    window.FireGuardI18n.applyI18n(lang);
+    window.FireGuardPrefs.applyTheme(theme);
+    langSelects.forEach((el) => { el.value = lang; });
+    syncThemeIcons(theme);
+    renderCompanies();
+  }
+
+  langSelects.forEach((el) => {
+    el.addEventListener('change', () => {
+      window.FireGuardPrefs.setPreferredLang(el.value);
+      window.FireGuardI18n.applyI18n(el.value);
+      langSelects.forEach((other) => { other.value = el.value; });
+      renderCompanies();
+    });
+  });
+
+  themeToggleBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const current = window.FireGuardPrefs.effectiveTheme(window.FireGuardPrefs.getPreferredTheme());
+      const next = current === 'dark' ? 'light' : 'dark';
+      window.FireGuardPrefs.setPreferredTheme(next);
+      window.FireGuardPrefs.applyTheme(next);
+      syncThemeIcons(next);
+    });
+  });
 
   // ---------------- Login ----------------
   const loginForm = document.getElementById('admin-login-form');
   const loginAlert = document.getElementById('admin-login-alert');
   const loginSubmit = document.getElementById('admin-login-submit');
+
+  // ---------------- Caps Lock warning ----------------
+  const adminCapsWarning = document.getElementById('admin-caps-warning');
+  document.getElementById('admin-password').addEventListener('keyup', (e) => {
+    adminCapsWarning.classList.toggle('hidden', !e.getModifierState('CapsLock'));
+  });
+  document.getElementById('admin-password').addEventListener('blur', () => {
+    adminCapsWarning.classList.add('hidden');
+  });
 
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -54,17 +109,17 @@
     const password = document.getElementById('admin-password').value;
 
     loginSubmit.disabled = true;
-    loginSubmit.textContent = 'Iniciando sesión…';
+    loginSubmit.textContent = t('admin.loggingIn');
     try {
       await api('/login', { method: 'POST', body: JSON.stringify({ email, password }) });
       await loadCompanies();
       show('dashboard');
     } catch (err) {
-      loginAlert.textContent = (err.data && err.data.error) || 'Datos no válidos.';
+      loginAlert.textContent = (err.data && err.data.error) || t('admin.invalidCredentials');
       loginAlert.classList.remove('hidden');
     } finally {
       loginSubmit.disabled = false;
-      loginSubmit.textContent = 'Iniciar sesión';
+      loginSubmit.textContent = t('admin.login');
     }
   });
 
@@ -77,14 +132,14 @@
   const state = { companies: [], search: '' };
 
   function formatDate(d) {
-    return new Date(d).toLocaleDateString('es-ES', { month: 'short', day: 'numeric', year: 'numeric' });
+    return new Date(d).toLocaleDateString(dateLocale(), { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
   function statusBadge(company) {
-    if (!company.active) return '<span class="badge badge-suspended">Suspendida</span>';
-    if (company.status === 'ready') return '<span class="badge badge-status-ready">Lista</span>';
-    if (company.status === 'provisioning') return '<span class="badge badge-status-provisioning">Aprovisionando…</span>';
-    return '<span class="badge badge-status-error">Error</span>';
+    if (!company.active) return `<span class="badge badge-suspended">${t('admin.badgeSuspended')}</span>`;
+    if (company.status === 'ready') return `<span class="badge badge-status-ready">${t('admin.badgeReady')}</span>`;
+    if (company.status === 'provisioning') return `<span class="badge badge-status-provisioning">${t('admin.badgeProvisioning')}</span>`;
+    return `<span class="badge badge-status-error">${t('admin.badgeError')}</span>`;
   }
 
   function showAdminAlert(msg) {
@@ -133,13 +188,20 @@
           </div>
           <div class="company-badges">
             ${statusBadge(c)}
-            <button class="toggle-switch ${c.active ? 'on' : ''}" data-action="toggle" data-slug="${c.slug}" data-active="${c.active}" title="${c.active ? 'Suspender acceso' : 'Reanudar acceso'}"></button>
+            <button class="toggle-switch ${c.active ? 'on' : ''}" data-action="toggle" data-slug="${c.slug}" data-active="${c.active}" title="${c.active ? t('admin.suspend') : t('admin.resume')}"></button>
           </div>
         </div>
-        <div class="company-meta">Creada el ${formatDate(c.created_at)} &middot; ${c.db_host}</div>
+        <div class="company-meta">${t('admin.createdOn')} ${formatDate(c.created_at)} &middot; ${c.db_host}</div>
         ${c.status === 'error' && c.status_message ? `<div class="company-error-msg">${c.status_message}</div>` : ''}
+        ${
+          c.pendingPasswordResets > 0
+            ? `<div class="company-pending-alert">⚠ ${c.pendingPasswordResets} ${t(c.pendingPasswordResets > 1 ? 'admin.pendingRequestPlural' : 'admin.pendingRequestSingular')}</div>`
+            : ''
+        }
         <div class="company-actions">
-          <button class="btn btn-danger" data-action="delete" data-slug="${c.slug}">Eliminar</button>
+          <button class="btn btn-outline" data-action="users" data-slug="${c.slug}">${t('admin.viewUsers')}</button>
+          <button class="btn btn-outline" data-action="reset-password" data-slug="${c.slug}">${t('admin.resetAdminPassword')}</button>
+          <button class="btn btn-danger" data-action="delete" data-slug="${c.slug}">${t('admin.delete')}</button>
         </div>
       `;
       list.appendChild(card);
@@ -160,6 +222,8 @@
   document.getElementById('companies-list').addEventListener('click', async (e) => {
     const toggleBtn = e.target.closest('[data-action="toggle"]');
     const deleteBtn = e.target.closest('[data-action="delete"]');
+    const usersBtn = e.target.closest('[data-action="users"]');
+    const resetPasswordBtn = e.target.closest('[data-action="reset-password"]');
 
     if (toggleBtn) {
       const slug = toggleBtn.dataset.slug;
@@ -169,13 +233,29 @@
         await api(`/companies/${encodeURIComponent(slug)}`, { method: 'PATCH', body: JSON.stringify({ active: !active }) });
         await loadCompanies();
       } catch (err) {
-        showAdminAlert((err.data && err.data.error) || 'No se pudo actualizar la empresa.');
+        showAdminAlert((err.data && err.data.error) || t('admin.errCompanyUpdate'));
       } finally {
         toggleBtn.disabled = false;
       }
     }
 
     if (deleteBtn) openDeleteModal(deleteBtn.dataset.slug);
+    if (usersBtn) openUsersModal(usersBtn.dataset.slug);
+
+    if (resetPasswordBtn) {
+      const slug = resetPasswordBtn.dataset.slug;
+      resetPasswordBtn.disabled = true;
+      resetPasswordBtn.textContent = t('admin.generating');
+      try {
+        const result = await api(`/companies/${encodeURIComponent(slug)}/admin-password`, { method: 'POST' });
+        openCredentialsModal(result.email, result.password, t('admin.passwordUpdated'));
+      } catch (err) {
+        showAdminAlert((err.data && err.data.error) || t('admin.errPasswordChange'));
+      } finally {
+        resetPasswordBtn.disabled = false;
+        resetPasswordBtn.textContent = t('admin.resetAdminPassword');
+      }
+    }
   });
 
   // ---------------- Create company modal ----------------
@@ -199,42 +279,119 @@
     createAlert.classList.add('hidden');
 
     if (!/^[a-z0-9][a-z0-9_-]*$/.test(slug)) {
-      createAlert.textContent = 'Slug inválido: usa minúsculas, dígitos, - o _.';
+      createAlert.textContent = t('admin.invalidSlug');
       createAlert.classList.remove('hidden');
       return;
     }
     if (!displayName) {
-      createAlert.textContent = 'El nombre visible es obligatorio.';
+      createAlert.textContent = t('admin.displayNameRequired');
       createAlert.classList.remove('hidden');
       return;
     }
 
     const btn = document.getElementById('create-submit-btn');
     btn.disabled = true;
-    btn.textContent = 'Creando…';
+    btn.textContent = t('admin.creating');
     try {
       const payload = { slug, displayName };
       if (adminPassword) payload.adminPassword = adminPassword;
       const created = await api('/companies', { method: 'POST', body: JSON.stringify(payload) });
       createModal.classList.add('hidden');
       await loadCompanies();
-      openCredentialsModal(created.adminEmail, created.adminPassword);
+      openCredentialsModal(created.adminEmail, created.adminPassword, t('admin.companyCreated'));
     } catch (err) {
-      createAlert.textContent = (err.data && err.data.error) || 'No se pudo crear la empresa.';
+      createAlert.textContent = (err.data && err.data.error) || t('admin.errCompanyCreate');
       createAlert.classList.remove('hidden');
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Crear';
+      btn.textContent = t('admin.create');
     }
   });
 
-  function openCredentialsModal(email, password) {
+  function openCredentialsModal(email, password, title) {
+    document.getElementById('creds-title').textContent = title || t('admin.companyCreated');
     document.getElementById('creds-email').textContent = email;
     document.getElementById('creds-password').textContent = password;
     document.getElementById('modal-credentials').classList.remove('hidden');
   }
   document.getElementById('creds-done-btn').addEventListener('click', () => {
     document.getElementById('modal-credentials').classList.add('hidden');
+  });
+
+  // ---------------- Company users modal ----------------
+  const usersModal = document.getElementById('modal-users');
+  const usersAlert = document.getElementById('users-alert');
+
+  function formatLastLogin(d) {
+    if (!d) return t('admin.never');
+    return new Date(d).toLocaleString(dateLocale(), { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  let usersModalSlug = null;
+
+  async function openUsersModal(slug) {
+    usersModalSlug = slug;
+    document.getElementById('users-company-label').textContent = slug;
+    document.getElementById('users-list').innerHTML = '';
+    usersAlert.classList.add('hidden');
+    usersModal.classList.remove('hidden');
+    try {
+      const { users } = await api(`/companies/${encodeURIComponent(slug)}/users`);
+      renderUsersList(users);
+    } catch (err) {
+      usersAlert.textContent = (err.data && err.data.error) || t('admin.errUsersLoad');
+      usersAlert.classList.remove('hidden');
+    }
+  }
+
+  function renderUsersList(users) {
+    const list = document.getElementById('users-list');
+    if (users.length === 0) {
+      list.innerHTML = `<div class="empty-state">${t('admin.noUsers')}</div>`;
+      return;
+    }
+    list.innerHTML = users
+      .map(
+        (u) => `
+      <div class="user-row">
+        <div>
+          <div class="user-email">${u.email}${u.locked ? ` <span class="badge badge-suspended">${t('admin.locked')}</span>` : ''}</div>
+          <div class="user-meta">${u.fullName || ''} &middot; ${u.role}</div>
+          ${u.passwordResetRequestedAt ? `<div class="user-pending-badge">⚠ ${t('admin.pendingReset')} &middot; ${formatLastLogin(u.passwordResetRequestedAt)}</div>` : ''}
+        </div>
+        <div class="user-side">
+          <div class="user-last-login">${t('admin.lastLogin')}<br>${formatLastLogin(u.lastLoginAt)}</div>
+          <button class="btn btn-outline btn-sm" data-action="user-reset-password" data-user-id="${u.id}">${t('admin.reset')}</button>
+        </div>
+      </div>
+    `
+      )
+      .join('');
+  }
+
+  document.getElementById('users-list').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-action="user-reset-password"]');
+    if (!btn) return;
+    btn.disabled = true;
+    btn.textContent = t('admin.generating');
+    try {
+      const result = await api(`/companies/${encodeURIComponent(usersModalSlug)}/users/${btn.dataset.userId}/reset-password`, {
+        method: 'POST',
+      });
+      usersModal.classList.add('hidden');
+      openCredentialsModal(result.email, result.password, t('admin.passwordUpdated'));
+      await loadCompanies();
+    } catch (err) {
+      usersAlert.textContent = (err.data && err.data.error) || t('admin.errPasswordReset');
+      usersAlert.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = t('admin.reset');
+    }
+  });
+
+  document.getElementById('users-done-btn').addEventListener('click', () => {
+    usersModal.classList.add('hidden');
   });
 
   // ---------------- Delete company modal ----------------
@@ -263,22 +420,23 @@
 
   deleteSubmitBtn.addEventListener('click', async () => {
     deleteSubmitBtn.disabled = true;
-    deleteSubmitBtn.textContent = 'Eliminando…';
+    deleteSubmitBtn.textContent = t('admin.deleting');
     try {
       await api(`/companies/${encodeURIComponent(pendingDeleteSlug)}`, { method: 'DELETE' });
       deleteModal.classList.add('hidden');
       await loadCompanies();
     } catch (err) {
-      deleteAlert.textContent = (err.data && err.data.error) || 'No se pudo eliminar la empresa.';
+      deleteAlert.textContent = (err.data && err.data.error) || t('admin.errCompanyDelete');
       deleteAlert.classList.remove('hidden');
       deleteSubmitBtn.disabled = false;
     } finally {
-      deleteSubmitBtn.textContent = 'Eliminar definitivamente';
+      deleteSubmitBtn.textContent = t('admin.deleteFinal');
     }
   });
 
   // ---------------- Boot ----------------
   async function boot() {
+    applyStoredPrefs();
     checkHealth();
     setInterval(checkHealth, 30000);
     try {

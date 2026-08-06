@@ -1,4 +1,4 @@
--- Runs against a per-company database (e.g. pg-emp01 / db "emp01").
+-- Runs against a per-company database (e.g. pg-<slug> / db "<slug>").
 -- Applied once per company when it's onboarded.
 
 CREATE TABLE IF NOT EXISTS users (
@@ -13,7 +13,9 @@ CREATE TABLE IF NOT EXISTS users (
   theme VARCHAR(10) NOT NULL DEFAULT 'system',
   timezone VARCHAR(64) NOT NULL DEFAULT 'Europe/Madrid',
   locked BOOLEAN NOT NULL DEFAULT false,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_login_at TIMESTAMPTZ,
+  password_reset_requested_at TIMESTAMPTZ
 );
 
 -- Safe to re-run on an existing table (older deployments).
@@ -21,6 +23,8 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS language VARCHAR(5) NOT NULL DEFAULT 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS theme VARCHAR(10) NOT NULL DEFAULT 'system';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS timezone VARCHAR(64) NOT NULL DEFAULT 'Europe/Madrid';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS locked BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_requested_at TIMESTAMPTZ;
 
 -- A site is a physical location (building/warehouse), shown as one bubble on the Units map.
 CREATE TABLE IF NOT EXISTS sites (

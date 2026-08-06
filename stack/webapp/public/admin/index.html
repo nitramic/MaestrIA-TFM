@@ -15,6 +15,17 @@
 
   <!-- ===================== ADMIN LOGIN ===================== -->
   <section id="view-admin-login" class="view">
+    <div class="corner-controls">
+      <select id="lang-select" class="corner-select" aria-label="Idioma">
+        <option value="es">ES</option>
+        <option value="en">EN</option>
+        <option value="it">IT</option>
+      </select>
+      <button type="button" id="theme-toggle-btn" class="corner-icon-btn" data-i18n-title="admin.toggleTheme" aria-label="Cambiar tema" title="Cambiar tema">
+        <svg id="theme-icon-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg id="theme-icon-moon" class="hidden" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg>
+      </button>
+    </div>
     <div class="login-wrap">
       <div class="brand">
         <div class="brand-logo">
@@ -23,11 +34,11 @@
           </svg>
         </div>
         <h1>FireGuard</h1>
-        <p class="subtitle">Panel de Administración</p>
+        <p class="subtitle" data-i18n="admin.subtitle">Panel de Administración</p>
       </div>
 
       <form id="admin-login-form" class="card login-card" novalidate>
-        <label class="field-label" for="admin-email">Correo electrónico</label>
+        <label class="field-label" for="admin-email" data-i18n="admin.email">Correo electrónico</label>
         <div class="input-group">
           <span class="input-icon">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6l9 6 9-6M3 6h18v12H3z"/></svg>
@@ -35,23 +46,24 @@
           <input id="admin-email" name="email" type="text" placeholder="superadmin@fireguard.local" autocomplete="username" required />
         </div>
 
-        <label class="field-label" for="admin-password">Contraseña</label>
+        <label class="field-label" for="admin-password" data-i18n="admin.password">Contraseña</label>
         <div class="input-group">
           <span class="input-icon">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
           </span>
           <input id="admin-password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required />
         </div>
+        <p id="admin-caps-warning" class="caps-warning hidden" data-i18n="admin.capsLock">⚠ Bloq Mayús está activado</p>
 
         <div id="admin-login-alert" class="alert alert-error hidden"></div>
 
-        <button type="submit" id="admin-login-submit" class="btn btn-primary btn-block">Iniciar sesión</button>
+        <button type="submit" id="admin-login-submit" class="btn btn-primary btn-block" data-i18n="admin.login">Iniciar sesión</button>
       </form>
     </div>
 
     <div class="status-bar">
       <span id="admin-status-dot" class="status-dot status-unknown"></span>
-      <span id="admin-status-text">Comprobando conexión…</span>
+      <span id="admin-status-text" data-i18n="admin.checkingConnection">Comprobando conexión…</span>
     </div>
   </section>
 
@@ -60,10 +72,19 @@
     <header class="admin-topbar">
       <div>
         <div class="eyebrow">FireGuard Admin</div>
-        <h1 class="page-title">Empresas</h1>
+        <h1 class="page-title" data-i18n="admin.companies">Empresas</h1>
       </div>
       <div class="topbar-actions">
-        <button id="admin-logout-btn" class="icon-btn" aria-label="Cerrar sesión" title="Cerrar sesión">
+        <select id="admin-lang-select" class="corner-select" aria-label="Idioma">
+          <option value="es">ES</option>
+          <option value="en">EN</option>
+          <option value="it">IT</option>
+        </select>
+        <button type="button" id="admin-theme-toggle-btn" class="corner-icon-btn" data-i18n-title="admin.toggleTheme" aria-label="Cambiar tema" title="Cambiar tema">
+          <svg id="admin-theme-icon-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+          <svg id="admin-theme-icon-moon" class="hidden" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg>
+        </button>
+        <button id="admin-logout-btn" class="icon-btn" data-i18n-title="admin.logout" aria-label="Cerrar sesión" title="Cerrar sesión">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
         </button>
       </div>
@@ -73,13 +94,13 @@
       <span class="input-icon">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
       </span>
-      <input id="company-search-input" type="text" placeholder="Buscar por nombre de empresa…" autocomplete="off" />
+      <input id="company-search-input" type="text" data-i18n-placeholder="admin.searchPlaceholder" placeholder="Buscar por nombre de empresa…" autocomplete="off" />
     </div>
 
     <div class="admin-toolbar">
       <button id="new-company-btn" class="btn btn-primary">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-        Nueva Empresa
+        <span data-i18n="admin.newCompany">Nueva Empresa</span>
       </button>
     </div>
 
@@ -89,8 +110,8 @@
     </div>
 
     <div id="companies-list" class="companies-list"></div>
-    <div id="companies-empty" class="empty-state hidden">Todavía no hay empresas. Creá la primera.</div>
-    <div id="companies-no-match" class="empty-state hidden">Ninguna empresa coincide con la búsqueda.</div>
+    <div id="companies-empty" class="empty-state hidden" data-i18n="admin.noCompanies">Todavía no hay empresas. Creá la primera.</div>
+    <div id="companies-no-match" class="empty-state hidden" data-i18n="admin.noMatch">Ninguna empresa coincide con la búsqueda.</div>
   </section>
 
 </div>
@@ -98,23 +119,23 @@
 <!-- ===================== CREATE COMPANY MODAL ===================== -->
 <div id="modal-create" class="modal-overlay hidden">
   <div class="modal card">
-    <h2 class="modal-title">Nueva Empresa</h2>
+    <h2 class="modal-title" data-i18n="admin.newCompany">Nueva Empresa</h2>
 
-    <label class="field-label" for="create-slug">Slug</label>
-    <input id="create-slug" class="input" type="text" placeholder="empresa01" autocomplete="off" />
-    <p class="hint">Minúsculas, dígitos, - o _. Es lo que va después de la @ en el email de login (admin@&lt;slug&gt;).</p>
+    <label class="field-label" for="create-slug" data-i18n="admin.slug">Slug</label>
+    <input id="create-slug" class="input" type="text" data-i18n-placeholder="admin.slugPlaceholder" placeholder="empresa01" autocomplete="off" />
+    <p class="hint" data-i18n="admin.slugHint">Minúsculas, dígitos, - o _. Es lo que va después de la @ en el email de login (admin@&lt;slug&gt;).</p>
 
-    <label class="field-label" for="create-name">Nombre visible</label>
-    <input id="create-name" class="input" type="text" placeholder="Empresa 01" autocomplete="off" />
+    <label class="field-label" for="create-name" data-i18n="admin.displayName">Nombre visible</label>
+    <input id="create-name" class="input" type="text" data-i18n-placeholder="admin.displayNamePlaceholder" placeholder="Empresa 01" autocomplete="off" />
 
-    <label class="field-label" for="create-password">Contraseña de administrador <span class="hint-inline">(opcional, se genera automáticamente si se deja vacía)</span></label>
-    <input id="create-password" class="input" type="text" placeholder="Dejar vacío para generar automáticamente" autocomplete="off" />
+    <label class="field-label" for="create-password"><span data-i18n="admin.adminPassword">Contraseña de administrador</span> <span class="hint-inline" data-i18n="admin.adminPasswordHint">(opcional, se genera automáticamente si se deja vacía)</span></label>
+    <input id="create-password" class="input" type="text" data-i18n-placeholder="admin.adminPasswordPlaceholder" placeholder="Dejar vacío para generar automáticamente" autocomplete="off" />
 
     <div id="create-alert" class="alert alert-error hidden"></div>
 
     <div class="modal-actions">
-      <button id="create-cancel-btn" class="btn btn-outline">Cancelar</button>
-      <button id="create-submit-btn" class="btn btn-primary">Crear</button>
+      <button id="create-cancel-btn" class="btn btn-outline" data-i18n="admin.cancel">Cancelar</button>
+      <button id="create-submit-btn" class="btn btn-primary" data-i18n="admin.create">Crear</button>
     </div>
   </div>
 </div>
@@ -122,14 +143,26 @@
 <!-- ===================== CREDENTIALS REVEAL MODAL ===================== -->
 <div id="modal-credentials" class="modal-overlay hidden">
   <div class="modal card">
-    <h2 class="modal-title">Empresa creada</h2>
-    <p class="hint">Guardá estas credenciales ahora — la contraseña no se volverá a mostrar.</p>
+    <h2 class="modal-title" id="creds-title">Empresa creada</h2>
+    <p class="hint" data-i18n="admin.credsHint">Guardá estas credenciales ahora — la contraseña no se volverá a mostrar.</p>
     <div class="creds-box">
-      <div class="creds-row"><span class="creds-label">Usuario</span><span id="creds-email" class="creds-value"></span></div>
-      <div class="creds-row"><span class="creds-label">Contraseña</span><span id="creds-password" class="creds-value"></span></div>
+      <div class="creds-row"><span class="creds-label" data-i18n="admin.user">Usuario</span><span id="creds-email" class="creds-value"></span></div>
+      <div class="creds-row"><span class="creds-label" data-i18n="admin.password">Contraseña</span><span id="creds-password" class="creds-value"></span></div>
     </div>
     <div class="modal-actions">
-      <button id="creds-done-btn" class="btn btn-primary btn-block">Listo</button>
+      <button id="creds-done-btn" class="btn btn-primary btn-block" data-i18n="admin.done">Listo</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== COMPANY USERS MODAL ===================== -->
+<div id="modal-users" class="modal-overlay hidden">
+  <div class="modal card">
+    <h2 class="modal-title"><span data-i18n="admin.usersOf">Usuarios de</span> <span id="users-company-label"></span></h2>
+    <div id="users-alert" class="alert alert-error hidden"></div>
+    <div id="users-list" class="users-list"></div>
+    <div class="modal-actions">
+      <button id="users-done-btn" class="btn btn-primary btn-block" data-i18n="admin.close">Cerrar</button>
     </div>
   </div>
 </div>
@@ -137,18 +170,20 @@
 <!-- ===================== DELETE CONFIRM MODAL ===================== -->
 <div id="modal-delete" class="modal-overlay hidden">
   <div class="modal card">
-    <h2 class="modal-title">Eliminar empresa</h2>
-    <p class="hint">Esto elimina permanentemente a <strong id="delete-slug-label"></strong> y toda su base de datos. Esta acción no se puede deshacer.</p>
-    <label class="field-label" for="delete-confirm-input">Escribí <strong id="delete-slug-label-2"></strong> para confirmar</label>
+    <h2 class="modal-title" data-i18n="admin.deleteCompanyTitle">Eliminar empresa</h2>
+    <p class="hint"><span data-i18n="admin.deleteHintPrefix">Esto elimina permanentemente a</span> <strong id="delete-slug-label"></strong> <span data-i18n="admin.deleteHintSuffix">y toda su base de datos. Esta acción no se puede deshacer.</span></p>
+    <label class="field-label" for="delete-confirm-input"><span data-i18n="admin.deleteConfirmPrefix">Escribí</span> <strong id="delete-slug-label-2"></strong> <span data-i18n="admin.deleteConfirmSuffix">para confirmar</span></label>
     <input id="delete-confirm-input" class="input" type="text" autocomplete="off" />
     <div id="delete-alert" class="alert alert-error hidden"></div>
     <div class="modal-actions">
-      <button id="delete-cancel-btn" class="btn btn-outline">Cancelar</button>
-      <button id="delete-submit-btn" class="btn btn-danger" disabled>Eliminar definitivamente</button>
+      <button id="delete-cancel-btn" class="btn btn-outline" data-i18n="admin.cancel">Cancelar</button>
+      <button id="delete-submit-btn" class="btn btn-danger" disabled data-i18n="admin.deleteFinal">Eliminar definitivamente</button>
     </div>
   </div>
 </div>
 
+<script src="/js/prefs.js"></script>
+<script src="/js/i18n.js"></script>
 <script src="/admin/js/admin.js"></script>
 </body>
 </html>
