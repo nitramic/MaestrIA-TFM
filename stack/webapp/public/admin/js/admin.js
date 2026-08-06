@@ -47,6 +47,15 @@
   const loginAlert = document.getElementById('admin-login-alert');
   const loginSubmit = document.getElementById('admin-login-submit');
 
+  // ---------------- Caps Lock warning ----------------
+  const adminCapsWarning = document.getElementById('admin-caps-warning');
+  document.getElementById('admin-password').addEventListener('keyup', (e) => {
+    adminCapsWarning.classList.toggle('hidden', !e.getModifierState('CapsLock'));
+  });
+  document.getElementById('admin-password').addEventListener('blur', () => {
+    adminCapsWarning.classList.add('hidden');
+  });
+
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     loginAlert.classList.add('hidden');
@@ -138,7 +147,14 @@
         </div>
         <div class="company-meta">Creada el ${formatDate(c.created_at)} &middot; ${c.db_host}</div>
         ${c.status === 'error' && c.status_message ? `<div class="company-error-msg">${c.status_message}</div>` : ''}
+        ${
+          c.pendingPasswordResets > 0
+            ? `<div class="company-pending-alert">⚠ ${c.pendingPasswordResets} solicitud${c.pendingPasswordResets > 1 ? 'es' : ''} de cambio de contraseña pendiente${c.pendingPasswordResets > 1 ? 's' : ''}</div>`
+            : ''
+        }
         <div class="company-actions">
+          <button class="btn btn-outline" data-action="users" data-slug="${c.slug}">Ver usuarios</button>
+          <button class="btn btn-outline" data-action="reset-password" data-slug="${c.slug}">Cambiar contraseña admin</button>
           <button class="btn btn-danger" data-action="delete" data-slug="${c.slug}">Eliminar</button>
         </div>
       `;
@@ -160,6 +176,8 @@
   document.getElementById('companies-list').addEventListener('click', async (e) => {
     const toggleBtn = e.target.closest('[data-action="toggle"]');
     const deleteBtn = e.target.closest('[data-action="delete"]');
+    const usersBtn = e.target.closest('[data-action="users"]');
+    const resetPasswordBtn = e.target.closest('[data-action="reset-password"]');
 
     if (toggleBtn) {
       const slug = toggleBtn.dataset.slug;
@@ -176,6 +194,22 @@
     }
 
     if (deleteBtn) openDeleteModal(deleteBtn.dataset.slug);
+    if (usersBtn) openUsersModal(usersBtn.dataset.slug);
+
+    if (resetPasswordBtn) {
+      const slug = resetPasswordBtn.dataset.slug;
+      resetPasswordBtn.disabled = true;
+      resetPasswordBtn.textContent = 'Generando…';
+      try {
+        const result = await api(`/companies/${encodeURIComponent(slug)}/admin-password`, { method: 'POST' });
+        openCredentialsModal(result.email, result.password, 'Contraseña actualizada');
+      } catch (err) {
+        showAdminAlert((err.data && err.data.error) || 'No se pudo cambiar la contraseña.');
+      } finally {
+        resetPasswordBtn.disabled = false;
+        resetPasswordBtn.textContent = 'Cambiar contraseña admin';
+      }
+    }
   });
 
   // ---------------- Create company modal ----------------
@@ -218,7 +252,7 @@
       const created = await api('/companies', { method: 'POST', body: JSON.stringify(payload) });
       createModal.classList.add('hidden');
       await loadCompanies();
-      openCredentialsModal(created.adminEmail, created.adminPassword);
+      openCredentialsModal(created.adminEmail, created.adminPassword, 'Empresa creada');
     } catch (err) {
       createAlert.textContent = (err.data && err.data.error) || 'No se pudo crear la empresa.';
       createAlert.classList.remove('hidden');
@@ -228,13 +262,90 @@
     }
   });
 
-  function openCredentialsModal(email, password) {
+  function openCredentialsModal(email, password, title) {
+    document.getElementById('creds-title').textContent = title || 'Empresa creada';
     document.getElementById('creds-email').textContent = email;
     document.getElementById('creds-password').textContent = password;
     document.getElementById('modal-credentials').classList.remove('hidden');
   }
   document.getElementById('creds-done-btn').addEventListener('click', () => {
     document.getElementById('modal-credentials').classList.add('hidden');
+  });
+
+  // ---------------- Company users modal ----------------
+  const usersModal = document.getElementById('modal-users');
+  const usersAlert = document.getElementById('users-alert');
+
+  function formatLastLogin(d) {
+    if (!d) return 'Nunca';
+    return new Date(d).toLocaleString('es-ES', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  let usersModalSlug = null;
+
+  async function openUsersModal(slug) {
+    usersModalSlug = slug;
+    document.getElementById('users-company-label').textContent = slug;
+    document.getElementById('users-list').innerHTML = '';
+    usersAlert.classList.add('hidden');
+    usersModal.classList.remove('hidden');
+    try {
+      const { users } = await api(`/companies/${encodeURIComponent(slug)}/users`);
+      renderUsersList(users);
+    } catch (err) {
+      usersAlert.textContent = (err.data && err.data.error) || 'No se pudieron cargar los usuarios.';
+      usersAlert.classList.remove('hidden');
+    }
+  }
+
+  function renderUsersList(users) {
+    const list = document.getElementById('users-list');
+    if (users.length === 0) {
+      list.innerHTML = '<div class="empty-state">Esta empresa todavía no tiene usuarios.</div>';
+      return;
+    }
+    list.innerHTML = users
+      .map(
+        (u) => `
+      <div class="user-row">
+        <div>
+          <div class="user-email">${u.email}${u.locked ? ' <span class="badge badge-suspended">Bloqueado</span>' : ''}</div>
+          <div class="user-meta">${u.fullName || ''} &middot; ${u.role}</div>
+          ${u.passwordResetRequestedAt ? `<div class="user-pending-badge">⚠ Solicitó cambio de contraseña &middot; ${formatLastLogin(u.passwordResetRequestedAt)}</div>` : ''}
+        </div>
+        <div class="user-side">
+          <div class="user-last-login">Último acceso<br>${formatLastLogin(u.lastLoginAt)}</div>
+          <button class="btn btn-outline btn-sm" data-action="user-reset-password" data-user-id="${u.id}">Restablecer</button>
+        </div>
+      </div>
+    `
+      )
+      .join('');
+  }
+
+  document.getElementById('users-list').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-action="user-reset-password"]');
+    if (!btn) return;
+    btn.disabled = true;
+    btn.textContent = 'Generando…';
+    try {
+      const result = await api(`/companies/${encodeURIComponent(usersModalSlug)}/users/${btn.dataset.userId}/reset-password`, {
+        method: 'POST',
+      });
+      usersModal.classList.add('hidden');
+      openCredentialsModal(result.email, result.password, 'Contraseña actualizada');
+      await loadCompanies();
+    } catch (err) {
+      usersAlert.textContent = (err.data && err.data.error) || 'No se pudo restablecer la contraseña.';
+      usersAlert.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Restablecer';
+    }
+  });
+
+  document.getElementById('users-done-btn').addEventListener('click', () => {
+    usersModal.classList.add('hidden');
   });
 
   // ---------------- Delete company modal ----------------

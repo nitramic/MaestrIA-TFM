@@ -42,8 +42,8 @@
 .company-meta { color: var(--gray-600); font-size: 13px; margin-top: 10px; }
 .company-error-msg { color: var(--red); font-size: 13px; margin-top: 6px; }
 
-.company-actions { display: flex; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--gray-200); }
-.company-actions .btn { flex: 1; padding: 10px; font-size: 14px; }
+.company-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--gray-200); }
+.company-actions .btn { flex: 1 1 auto; min-width: 120px; padding: 10px; font-size: 14px; }
 
 .btn-danger { background: var(--red-tint); color: var(--red); }
 .btn-danger:disabled { opacity: 0.5; cursor: default; }
@@ -74,3 +74,21 @@
 .creds-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: 14px; }
 .creds-label { color: var(--gray-600); }
 .creds-value { font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; text-align: right; }
+
+#modal-users .modal { max-width: 480px; }
+.users-list { max-height: 50vh; overflow-y: auto; margin: 14px 0; display: flex; flex-direction: column; gap: 8px; }
+.user-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--gray-100); border-radius: var(--radius-sm); padding: 10px 14px;
+}
+.user-email { font-weight: 700; font-size: 14px; }
+.user-meta { color: var(--gray-600); font-size: 12px; margin-top: 2px; }
+.user-pending-badge { color: var(--amber); font-size: 12px; font-weight: 600; margin-top: 6px; }
+.user-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.user-last-login { color: var(--gray-600); font-size: 12px; text-align: right; white-space: nowrap; line-height: 1.3; }
+.btn-sm { padding: 6px 10px !important; font-size: 12px !important; flex: none !important; }
+
+.company-pending-alert {
+  color: var(--amber); background: var(--amber-tint); border-radius: var(--radius-sm);
+  padding: 8px 12px; font-size: 13px; font-weight: 600; margin-top: 10px;
+}

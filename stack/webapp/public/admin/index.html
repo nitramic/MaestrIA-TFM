@@ -42,6 +42,7 @@
           </span>
           <input id="admin-password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required />
         </div>
+        <p id="admin-caps-warning" class="caps-warning hidden">⚠ Bloq Mayús está activado</p>
 
         <div id="admin-login-alert" class="alert alert-error hidden"></div>
 
@@ -122,7 +123,7 @@
 <!-- ===================== CREDENTIALS REVEAL MODAL ===================== -->
 <div id="modal-credentials" class="modal-overlay hidden">
   <div class="modal card">
-    <h2 class="modal-title">Empresa creada</h2>
+    <h2 class="modal-title" id="creds-title">Empresa creada</h2>
     <p class="hint">Guardá estas credenciales ahora — la contraseña no se volverá a mostrar.</p>
     <div class="creds-box">
       <div class="creds-row"><span class="creds-label">Usuario</span><span id="creds-email" class="creds-value"></span></div>
@@ -130,6 +131,18 @@
     </div>
     <div class="modal-actions">
       <button id="creds-done-btn" class="btn btn-primary btn-block">Listo</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== COMPANY USERS MODAL ===================== -->
+<div id="modal-users" class="modal-overlay hidden">
+  <div class="modal card">
+    <h2 class="modal-title">Usuarios de <span id="users-company-label"></span></h2>
+    <div id="users-alert" class="alert alert-error hidden"></div>
+    <div id="users-list" class="users-list"></div>
+    <div class="modal-actions">
+      <button id="users-done-btn" class="btn btn-primary btn-block">Cerrar</button>
     </div>
   </div>
 </div>

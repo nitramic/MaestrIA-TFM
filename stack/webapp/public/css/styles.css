@@ -145,7 +145,23 @@ html, body {
 .btn-secondary { background: var(--blue-tint); color: var(--blue-dark); margin-top: 4px; }
 .btn-outline { background: transparent; color: var(--gray-900); border: 1px solid var(--gray-200); flex: 1; }
 
-.forgot-link { display: block; text-align: center; color: var(--blue); text-decoration: none; margin-top: 16px; font-size: 14px; }
+.forgot-link { display: block; text-align: center; color: var(--blue); text-decoration: none; margin-top: 16px; font-size: 14px; cursor: pointer; }
+
+.caps-warning { color: var(--amber); font-size: 13px; font-weight: 600; margin: 6px 0 0; }
+
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(11, 18, 32, 0.5);
+  display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50;
+}
+.modal { width: 100%; max-width: 420px; }
+.modal-title { margin: 0 0 4px; font-size: 20px; }
+.modal-actions { display: flex; gap: 12px; margin-top: 20px; }
+.modal-actions .btn { flex: 1; }
+
+.creds-box { background: var(--gray-100); border-radius: var(--radius-sm); padding: 14px; margin: 14px 0; }
+.creds-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: 14px; }
+.creds-label { color: var(--gray-600); }
+.creds-value { font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; text-align: right; }
 
 .status-bar { margin-top: auto; padding: 24px; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--gray-600); font-size: 13px; }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; }
