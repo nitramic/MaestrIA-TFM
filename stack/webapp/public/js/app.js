@@ -57,16 +57,6 @@
     return data;
   }
 
-  // ---------------- Theme ----------------
-  function applyTheme(theme) {
-    const root = document.documentElement;
-    if (theme === 'light' || theme === 'dark') {
-      root.setAttribute('data-theme', theme);
-    } else {
-      root.removeAttribute('data-theme');
-    }
-  }
-
   // ---------------- Navigation ----------------
   function navigateTo(view) {
     show(view);
@@ -95,22 +85,20 @@
       const res = await fetch('/api/health', { credentials: 'same-origin' });
       if (res.ok) {
         dot.className = 'status-dot status-ready';
-        text.textContent = 'Ready to work';
+        text.textContent = t('conn.ready');
       } else {
         dot.className = 'status-dot status-down';
-        text.textContent = 'System unavailable';
+        text.textContent = t('conn.down');
       }
     } catch (e) {
       dot.className = 'status-dot status-down';
-      text.textContent = 'System unavailable';
+      text.textContent = t('conn.down');
     }
   }
 
   // ---------------- Session / boot ----------------
   function applySession(session) {
     state.session = session;
-    window.FireGuardI18n.applyI18n(session.language || 'es');
-    applyTheme(session.theme || 'system');
     document.getElementById('settings-admin-card').classList.toggle('hidden', session.role !== 'admin');
   }
 
@@ -141,31 +129,29 @@
     const password = document.getElementById('password').value;
 
     if (!email || password.length < 5) {
-      loginAlert.textContent = 'Password must be at least 5 characters';
+      loginAlert.textContent = t('login.passwordMinLength');
       loginAlert.classList.remove('hidden');
       return;
     }
 
     loginSubmit.disabled = true;
-    loginSubmit.textContent = 'Signing in…';
+    loginSubmit.textContent = t('login.signingIn');
 
     try {
       const res = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
       applySession({
         role: res.user.role,
         email: res.user.email,
-        language: res.user.language,
-        theme: res.user.theme,
         timezone: res.user.timezone,
       });
       await loadDashboard();
       navigateTo('dashboard');
     } catch (err) {
-      loginAlert.textContent = (err.data && err.data.error) || 'Datos no válidos.';
+      loginAlert.textContent = (err.data && err.data.error) || t('login.invalidCredentials');
       loginAlert.classList.remove('hidden');
     } finally {
       loginSubmit.disabled = false;
-      loginSubmit.textContent = 'Sign In';
+      loginSubmit.textContent = t('login.signIn');
     }
   });
 
@@ -194,22 +180,22 @@
     const email = forgotEmailInput.value.trim();
     forgotAlert.classList.add('hidden');
     if (!email) {
-      forgotAlert.textContent = 'Ingresá tu email.';
+      forgotAlert.textContent = t('forgot.emailRequired');
       forgotAlert.classList.remove('hidden');
       return;
     }
     forgotSubmitBtn.disabled = true;
-    forgotSubmitBtn.textContent = 'Enviando…';
+    forgotSubmitBtn.textContent = t('forgot.sending');
     try {
       await api('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) });
       forgotFormState.classList.add('hidden');
       forgotSentState.classList.remove('hidden');
     } catch (err) {
-      forgotAlert.textContent = (err.data && err.data.error) || 'No se pudo enviar la solicitud.';
+      forgotAlert.textContent = (err.data && err.data.error) || t('forgot.genericError');
       forgotAlert.classList.remove('hidden');
     } finally {
       forgotSubmitBtn.disabled = false;
-      forgotSubmitBtn.textContent = 'Enviar solicitud';
+      forgotSubmitBtn.textContent = t('forgot.send');
     }
   });
 
@@ -225,14 +211,18 @@
   });
 
   // ---------------- Shared card rendering ----------------
+  function dateLocale() {
+    return { es: 'es-ES', it: 'it-IT', en: 'en-US' }[window.FireGuardI18n.currentLang] || 'en-US';
+  }
+
   function formatDate(d) {
     if (!d) return '—';
     const date = new Date(d);
     const tz = state.session && state.session.timezone;
     try {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: tz || undefined });
+      return date.toLocaleDateString(dateLocale(), { month: 'short', day: 'numeric', year: 'numeric', timeZone: tz || undefined });
     } catch (e) {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      return date.toLocaleDateString(dateLocale(), { month: 'short', day: 'numeric', year: 'numeric' });
     }
   }
 
@@ -240,6 +230,19 @@
     if (status === 'ok') return t('status.ok');
     if (status === 'due_soon') return t('status.dueSoon');
     return t('status.overdue');
+  }
+
+  const TYPE_I18N_KEY = {
+    'ABC Dry Powder': 'type.abcDryPowder',
+    'CO2 Gas': 'type.co2Gas',
+    'Wet Chemical': 'type.wetChemical',
+    Foam: 'type.foam',
+    Water: 'type.water',
+  };
+
+  function typeLabel(rawType) {
+    const key = TYPE_I18N_KEY[rawType];
+    return key ? t(key) : rawType;
   }
 
   function buildCardHTML(item) {
@@ -258,13 +261,13 @@
         ${item.location}
       </div>
       <div class="unit-grid">
-        <div><div class="label">Type</div><div class="value">${item.type}</div></div>
-        <div><div class="label">Weight</div><div class="value">${item.weightKg != null ? item.weightKg + ' kg' : '—'}</div></div>
+        <div><div class="label">${t('card.type')}</div><div class="value">${typeLabel(item.type)}</div></div>
+        <div><div class="label">${t('card.weight')}</div><div class="value">${item.weightKg != null ? item.weightKg + ' kg' : '—'}</div></div>
       </div>
       <hr class="unit-sep" />
       <div class="unit-dates">
-        <div><div class="label">Last Inspected</div><div>${formatDate(item.lastInspected)}</div></div>
-        <div class="right"><div class="label">Next Due</div><div>${formatDate(item.nextDue)}</div></div>
+        <div><div class="label">${t('card.lastInspected')}</div><div>${formatDate(item.lastInspected)}</div></div>
+        <div class="right"><div class="label">${t('card.nextDue')}</div><div>${formatDate(item.nextDue)}</div></div>
       </div>
     `;
   }
@@ -445,13 +448,13 @@
     if (item.status === 'overdue') {
       alertBox.classList.remove('hidden');
       alertBox.className = 'banner banner-error';
-      alertTitle.textContent = 'Inspection Overdue';
-      alertSub.textContent = 'This extinguisher requires immediate inspection.';
+      alertTitle.textContent = t('detail.overdueTitle');
+      alertSub.textContent = t('detail.overdueSub');
     } else if (item.status === 'due_soon') {
       alertBox.classList.remove('hidden');
       alertBox.className = 'banner banner-warn';
-      alertTitle.textContent = 'Inspection Due Soon';
-      alertSub.textContent = 'Schedule an inspection in the coming weeks.';
+      alertTitle.textContent = t('detail.dueSoonTitle');
+      alertSub.textContent = t('detail.dueSoonSub');
     } else {
       alertBox.classList.add('hidden');
     }
@@ -502,10 +505,10 @@
       state.currentItem = updated;
       renderDetail(updated);
       const toast = document.getElementById('detail-toast');
-      toast.textContent = 'Changes saved.';
+      toast.textContent = t('toast.changesSaved');
       toast.classList.remove('hidden');
     } catch (err) {
-      alert(err.data && err.data.error ? err.data.error : 'Could not save changes.');
+      alert((err.data && err.data.error) || t('errors.requestFailed'));
     } finally {
       btn.disabled = false;
     }
@@ -521,10 +524,10 @@
       state.currentItem = updated;
       renderDetail(updated);
       const toast = document.getElementById('detail-toast');
-      toast.textContent = 'Inspection date set to today. Next due updated to next year.';
+      toast.textContent = t('toast.inspectionToday');
       toast.classList.remove('hidden');
     } catch (err) {
-      alert(err.data && err.data.error ? err.data.error : 'Could not update inspection date.');
+      alert((err.data && err.data.error) || t('errors.requestFailed'));
     } finally {
       btn.disabled = false;
     }
@@ -590,7 +593,7 @@
       forecastByType.series.forEach((s) => {
         const opt = document.createElement('option');
         opt.value = s.type;
-        opt.textContent = s.type;
+        opt.textContent = typeLabel(s.type);
         typeSelect.appendChild(opt);
       });
       state.reportsTypesLoaded = true;
@@ -600,7 +603,8 @@
       data: {
         labels: forecastByType.months.map(monthLabel),
         datasets: forecastByType.series.map((s, i) => ({
-          label: s.type,
+          label: typeLabel(s.type),
+          rawType: s.type,
           data: s.counts,
           borderColor: CHART_COLORS[i % CHART_COLORS.length],
           backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
@@ -617,10 +621,12 @@
     recent.items.forEach((entry) => {
       const row = document.createElement('div');
       row.className = 'log-row';
-      const actionLabel = entry.action === 'inspected' ? 'Inspeccionado' : `${entry.previousStatus || '—'} → ${entry.newStatus || '—'}`;
+      const actionLabel = entry.action === 'inspected'
+        ? t('reports.action.inspected')
+        : `${entry.previousStatus ? statusLabel(entry.previousStatus) : '—'} → ${entry.newStatus ? statusLabel(entry.newStatus) : '—'}`;
       row.innerHTML = `
         <div class="log-code">${entry.code}</div>
-        <div class="log-type">${entry.type}</div>
+        <div class="log-type">${typeLabel(entry.type)}</div>
         <div class="log-action">${actionLabel}</div>
         <div class="log-date">${formatDate(entry.performedAt)}</div>
       `;
@@ -633,7 +639,7 @@
     if (!chart) return;
     const value = document.getElementById('forecast-type-filter').value;
     chart.data.datasets.forEach((ds) => {
-      ds.hidden = value ? ds.label !== value : false;
+      ds.hidden = value ? ds.rawType !== value : false;
     });
     chart.update();
   }
@@ -645,38 +651,16 @@
     if (state.settingsBound) return;
     state.settingsBound = true;
 
-    document.getElementById('setting-language').addEventListener('change', async (e) => {
-      const language = e.target.value;
-      try {
-        await api('/settings/me', { method: 'PUT', body: JSON.stringify({ language }) });
-        state.session.language = language;
-        window.FireGuardI18n.applyI18n(language);
-      } catch (err) {
-        alert(err.data && err.data.error ? err.data.error : 'Could not update language.');
-      }
-    });
-
-    document.getElementById('setting-theme').addEventListener('change', async (e) => {
-      const theme = e.target.value;
-      try {
-        await api('/settings/me', { method: 'PUT', body: JSON.stringify({ theme }) });
-        state.session.theme = theme;
-        applyTheme(theme);
-      } catch (err) {
-        alert(err.data && err.data.error ? err.data.error : 'Could not update theme.');
-      }
-    });
-
     document.getElementById('setting-timezone').addEventListener('change', async (e) => {
       const timezone = e.target.value;
       try {
         await api('/settings/me', { method: 'PUT', body: JSON.stringify({ timezone }) });
         state.session.timezone = timezone;
         const toast = document.getElementById('settings-toast');
-        toast.textContent = 'Saved.';
+        toast.textContent = t('toast.saved');
         toast.classList.remove('hidden');
       } catch (err) {
-        alert(err.data && err.data.error ? err.data.error : 'Could not update time zone.');
+        alert((err.data && err.data.error) || t('errors.requestFailed'));
       }
     });
 
@@ -690,10 +674,10 @@
         document.getElementById('setting-current-password').value = '';
         document.getElementById('setting-new-password').value = '';
         const toast = document.getElementById('settings-toast');
-        toast.textContent = 'Password updated.';
+        toast.textContent = t('toast.passwordUpdated');
         toast.classList.remove('hidden');
       } catch (err) {
-        alertBox.textContent = (err.data && err.data.error) || 'Could not update password.';
+        alertBox.textContent = (err.data && err.data.error) || t('errors.passwordUpdateFailed');
         alertBox.classList.remove('hidden');
       }
     });
@@ -708,11 +692,11 @@
       row.innerHTML = `
         <div class="user-row-info">
           <div class="user-row-email">${u.email}</div>
-          <div class="user-row-meta">${u.fullName || ''} · ${u.role}${u.locked ? ' · <span class="user-locked">bloqueado</span>' : ''}</div>
+          <div class="user-row-meta">${u.fullName || ''} · ${u.role}${u.locked ? ` · <span class="user-locked">${t('settings.users.locked')}</span>` : ''}</div>
         </div>
         <div class="user-row-actions">
-          <button class="link-btn" data-action="reset" data-id="${u.id}">Reset password</button>
-          <button class="link-btn" data-action="${u.locked ? 'unlock' : 'lock'}" data-id="${u.id}">${u.locked ? 'Unlock' : 'Lock'}</button>
+          <button class="link-btn" data-action="reset" data-id="${u.id}">${t('settings.users.resetPassword')}</button>
+          <button class="link-btn" data-action="${u.locked ? 'unlock' : 'lock'}" data-id="${u.id}">${u.locked ? t('settings.users.unlock') : t('settings.users.lock')}</button>
         </div>
       `;
       container.appendChild(row);
@@ -724,16 +708,16 @@
         const action = btn.dataset.action;
         try {
           if (action === 'reset') {
-            const newPassword = prompt('Nueva contraseña para el usuario (mín. 5 caracteres):');
+            const newPassword = prompt(t('settings.users.newPasswordPrompt'));
             if (!newPassword) return;
             await api(`/settings/users/${id}/reset-password`, { method: 'POST', body: JSON.stringify({ newPassword }) });
-            alert('Contraseña actualizada.');
+            alert(t('settings.users.passwordUpdatedAlert'));
           } else {
             await api(`/settings/users/${id}/${action}`, { method: 'POST' });
             await loadSettingsUsers();
           }
         } catch (err) {
-          alert(err.data && err.data.error ? err.data.error : 'Action failed.');
+          alert((err.data && err.data.error) || t('errors.requestFailed'));
         }
       });
     });
@@ -748,8 +732,6 @@
     bindSettingsOnce();
     const me = await api('/settings/me');
     state.session = { ...(state.session || {}), ...me };
-    document.getElementById('setting-language').value = me.language;
-    document.getElementById('setting-theme').value = me.theme;
     document.getElementById('setting-timezone').value = me.timezone;
     document.getElementById('settings-admin-card').classList.toggle('hidden', me.role !== 'admin');
     if (me.role === 'admin') {
@@ -757,16 +739,19 @@
     }
   }
 
-  // ---------------- Login screen prefs (language / theme) ----------------
-  const langSelect = document.getElementById('lang-select');
-  const themeToggleBtn = document.getElementById('theme-toggle-btn');
-  const themeIconSun = document.getElementById('theme-icon-sun');
-  const themeIconMoon = document.getElementById('theme-icon-moon');
+  // ---------------- Prefs (language / theme) ----------------
+  // Two copies of the controls exist (login screen + dashboard topbar); keep
+  // both in sync with the same cookie-backed preference, same pattern as the
+  // admin panel.
+  const langSelects = [document.getElementById('lang-select'), document.getElementById('app-lang-select')];
+  const themeToggleBtns = [document.getElementById('theme-toggle-btn'), document.getElementById('app-theme-toggle-btn')];
+  const themeSunIcons = [document.getElementById('theme-icon-sun'), document.getElementById('app-theme-icon-sun')];
+  const themeMoonIcons = [document.getElementById('theme-icon-moon'), document.getElementById('app-theme-icon-moon')];
 
-  function syncThemeIcon(theme) {
+  function syncThemeIcons(theme) {
     const effective = window.FireGuardPrefs.effectiveTheme(theme);
-    themeIconSun.classList.toggle('hidden', effective === 'dark');
-    themeIconMoon.classList.toggle('hidden', effective !== 'dark');
+    themeSunIcons.forEach((el) => el.classList.toggle('hidden', effective === 'dark'));
+    themeMoonIcons.forEach((el) => el.classList.toggle('hidden', effective !== 'dark'));
   }
 
   function applyStoredPrefs() {
@@ -774,21 +759,26 @@
     const theme = window.FireGuardPrefs.getPreferredTheme();
     window.FireGuardI18n.applyI18n(lang);
     window.FireGuardPrefs.applyTheme(theme);
-    langSelect.value = lang;
-    syncThemeIcon(theme);
+    langSelects.forEach((el) => { el.value = lang; });
+    syncThemeIcons(theme);
   }
 
-  langSelect.addEventListener('change', () => {
-    window.FireGuardPrefs.setPreferredLang(langSelect.value);
-    window.FireGuardI18n.applyI18n(langSelect.value);
+  langSelects.forEach((el) => {
+    el.addEventListener('change', () => {
+      window.FireGuardPrefs.setPreferredLang(el.value);
+      window.FireGuardI18n.applyI18n(el.value);
+      langSelects.forEach((other) => { other.value = el.value; });
+    });
   });
 
-  themeToggleBtn.addEventListener('click', () => {
-    const current = window.FireGuardPrefs.effectiveTheme(window.FireGuardPrefs.getPreferredTheme());
-    const next = current === 'dark' ? 'light' : 'dark';
-    window.FireGuardPrefs.setPreferredTheme(next);
-    window.FireGuardPrefs.applyTheme(next);
-    syncThemeIcon(next);
+  themeToggleBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const current = window.FireGuardPrefs.effectiveTheme(window.FireGuardPrefs.getPreferredTheme());
+      const next = current === 'dark' ? 'light' : 'dark';
+      window.FireGuardPrefs.setPreferredTheme(next);
+      window.FireGuardPrefs.applyTheme(next);
+      syncThemeIcons(next);
+    });
   });
 
   // ---------------- Boot ----------------
@@ -804,8 +794,6 @@
       applySession({
         role: me.session.role,
         email: me.session.email,
-        language: (settings && settings.language) || 'es',
-        theme: (settings && settings.theme) || 'system',
         timezone: (settings && settings.timezone) || 'Europe/Madrid',
       });
       await loadDashboard();

@@ -9,8 +9,6 @@ CREATE TABLE IF NOT EXISTS users (
   role VARCHAR(32) NOT NULL DEFAULT 'inspector',
   failed_attempts INTEGER NOT NULL DEFAULT 0,
   locked_until TIMESTAMPTZ,
-  language VARCHAR(5) NOT NULL DEFAULT 'es',
-  theme VARCHAR(10) NOT NULL DEFAULT 'system',
   timezone VARCHAR(64) NOT NULL DEFAULT 'Europe/Madrid',
   locked BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -19,11 +17,12 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- Safe to re-run on an existing table (older deployments).
-ALTER TABLE users ADD COLUMN IF NOT EXISTS language VARCHAR(5) NOT NULL DEFAULT 'es';
-ALTER TABLE users ADD COLUMN IF NOT EXISTS theme VARCHAR(10) NOT NULL DEFAULT 'system';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS timezone VARCHAR(64) NOT NULL DEFAULT 'Europe/Madrid';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS locked BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
+-- language/theme are now purely client-side (cookie-based), not per-account.
+ALTER TABLE users DROP COLUMN IF EXISTS language;
+ALTER TABLE users DROP COLUMN IF EXISTS theme;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_requested_at TIMESTAMPTZ;
 
 -- A site is a physical location (building/warehouse), shown as one bubble on the Units map.
