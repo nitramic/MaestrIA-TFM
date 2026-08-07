@@ -85,6 +85,7 @@ services:
     image: docker:27-dind
     container_name: swarm-worker3
     hostname: swarm-worker3
+    profiles: ["scale"]
     privileged: true
     environment:
       - DOCKER_TLS_CERTDIR=
@@ -178,8 +179,13 @@ services:
       # Sin :ro -- el entrypoint necesita escribir provisioning/alerting/contactpoints.yaml
       # (generado a partir de contactpoints.yaml.template) con la URL real del webhook.
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    # required: false -- monitoring/.env no esta en git (tiene el webhook
+    # real de Slack, ver contactpoints.yaml.template); si falta, Grafana
+    # arranca igual con el contact point sin URL en vez de tumbar TODO
+    # docker compose (incluidos servicios sin relacion, como los nodos DinD).
     env_file:
-      - ./monitoring/.env
+      - path: ./monitoring/.env
+        required: false
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
