@@ -2,6 +2,7 @@ const path = require('path');
 const express = require('express');
 const cookieParser = require('cookie-parser');
 
+const metrics = require('./src/metrics');
 const authRoutes = require('./src/routes/auth');
 const extinguisherRoutes = require('./src/routes/extinguishers');
 const healthRoutes = require('./src/routes/health');
@@ -21,6 +22,26 @@ app.disable('x-powered-by');
 app.set('trust proxy', 1);
 app.use(express.json());
 app.use(cookieParser());
+
+app.use((req, res, next) => {
+  if (req.path === '/metrics') return next();
+  const start = process.hrtime.bigint();
+  res.on('finish', () => {
+    const durationSec = Number(process.hrtime.bigint() - start) / 1e9;
+    const route = req.route ? `${req.baseUrl}${req.route.path}` : 'unmatched';
+    const labels = { method: req.method, route, status_code: res.statusCode };
+    metrics.httpRequestDuration.observe(labels, durationSec);
+    metrics.httpRequestsTotal.inc(labels);
+  });
+  next();
+});
+
+// Solo alcanzable dentro de fireguard-net (el balanceador excluye /metrics
+// via lb.conf); lo scrapea el Prometheus interno del swarm por IP de tarea.
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', metrics.register.contentType);
+  res.end(await metrics.register.metrics());
+});
 
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);

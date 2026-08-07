@@ -1,0 +1,277 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: infra-host
+    folder: Alertas
+    interval: 1m
+    rules:
+      - uid: host-cpu-high
+        title: 'Host: CPU alta'
+        condition: B
+        for: 5m
+        noDataState: NoData
+        execErrState: Alerting
+        labels: { severity: warning }
+        annotations: { summary: 'CPU del host real por encima del 90% durante 5m.' }
+        data:
+          - refId: A
+            datasourceUid: prometheus-host
+            relativeTimeRange: { from: 300, to: 0 }
+            model: { refId: A, instant: true, expr: '100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)' }
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange: { from: 0, to: 0 }
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [90] }
+                  operator: { type: and }
+                  query: { params: [B] }
+                  reducer: { type: last, params: [] }
+
+      - uid: host-mem-high
+        title: 'Host: memoria alta'
+        condition: B
+        for: 5m
+        noDataState: NoData
+        execErrState: Alerting
+        labels: { severity: warning }
+        annotations: { summary: 'Memoria del host real por encima del 90% durante 5m.' }
+        data:
+          - refId: A
+            datasourceUid: prometheus-host
+            relativeTimeRange: { from: 60, to: 0 }
+            model: { refId: A, instant: true, expr: '(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100' }
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange: { from: 0, to: 0 }
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [90] }
+                  operator: { type: and }
+                  query: { params: [B] }
+                  reducer: { type: last, params: [] }
+
+      - uid: host-disk-high
+        title: 'Host: disco alto (/)'
+        condition: B
+        for: 10m
+        noDataState: NoData
+        execErrState: Alerting
+        labels: { severity: warning }
+        annotations: { summary: 'Uso de disco (/) del host real por encima del 85% durante 10m.' }
+        data:
+          - refId: A
+            datasourceUid: prometheus-host
+            relativeTimeRange: { from: 60, to: 0 }
+            model: { refId: A, instant: true, expr: '100 - ((node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100)' }
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange: { from: 0, to: 0 }
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [85] }
+                  operator: { type: and }
+                  query: { params: [B] }
+                  reducer: { type: last, params: [] }
+
+  - orgId: 1
+    name: infra-swarm
+    folder: Alertas
+    interval: 1m
+    rules:
+      - uid: swarm-node-cpu-high
+        title: 'Swarm: CPU alta por nodo'
+        condition: B
+        for: 5m
+        noDataState: NoData
+        execErrState: Alerting
+        labels: { severity: warning }
+        annotations: { summary: 'CPU del nodo {{ $labels.node }} por encima del 90% durante 5m.' }
+        data:
+          - refId: A
+            datasourceUid: prometheus-swarm
+            relativeTimeRange: { from: 300, to: 0 }
+            model: { refId: A, instant: true, expr: '100 - (avg by (node) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)' }
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange: { from: 0, to: 0 }
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [90] }
+                  operator: { type: and }
+                  query: { params: [B] }
+                  reducer: { type: last, params: [] }
+
+      - uid: swarm-node-mem-high
+        title: 'Swarm: memoria alta por nodo'
+        condition: B
+        for: 5m
+        noDataState: NoData
+        execErrState: Alerting
+        labels: { severity: warning }
+        annotations: { summary: 'Memoria del nodo {{ $labels.node }} por encima del 90% durante 5m.' }
+        data:
+          - refId: A
+            datasourceUid: prometheus-swarm
+            relativeTimeRange: { from: 60, to: 0 }
+            model: { refId: A, instant: true, expr: '(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100' }
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange: { from: 0, to: 0 }
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [90] }
+                  operator: { type: and }
+                  query: { params: [B] }
+                  reducer: { type: last, params: [] }
+
+      - uid: swarm-node-disk-high
+        title: 'Swarm: disco alto por nodo (/var/lib/docker)'
+        condition: B
+        for: 10m
+        noDataState: NoData
+        execErrState: Alerting
+        labels: { severity: warning }
+        annotations: { summary: 'Uso de disco (/var/lib/docker) del nodo {{ $labels.node }} por encima del 85% durante 10m.' }
+        data:
+          - refId: A
+            datasourceUid: prometheus-swarm
+            relativeTimeRange: { from: 60, to: 0 }
+            model: { refId: A, instant: true, expr: '100 - ((node_filesystem_avail_bytes{mountpoint="/var/lib/docker"} / node_filesystem_size_bytes{mountpoint="/var/lib/docker"}) * 100)' }
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange: { from: 0, to: 0 }
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [85] }
+                  operator: { type: and }
+                  query: { params: [B] }
+                  reducer: { type: last, params: [] }
+
+      - uid: swarm-node-down
+        title: 'Swarm: nodo caido'
+        condition: B
+        for: 2m
+        noDataState: NoData
+        execErrState: Alerting
+        labels: { severity: critical }
+        annotations: { summary: 'El nodo {{ $labels.node }} no responde (node-exporter down).' }
+        data:
+          - refId: A
+            datasourceUid: prometheus-swarm
+            relativeTimeRange: { from: 60, to: 0 }
+            model: { refId: A, instant: true, expr: 'up{job="node-exporter"}' }
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange: { from: 0, to: 0 }
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: lt, params: [1] }
+                  operator: { type: and }
+                  query: { params: [B] }
+                  reducer: { type: last, params: [] }
+
+  - orgId: 1
+    name: app-fireguard
+    folder: Alertas
+    interval: 1m
+    rules:
+      - uid: app-instance-down
+        title: 'App: instancia caida'
+        condition: B
+        for: 2m
+        noDataState: NoData
+        execErrState: Alerting
+        labels: { severity: critical }
+        annotations: { summary: 'El servicio {{ $labels.service }} no responde en /metrics.' }
+        data:
+          - refId: A
+            datasourceUid: prometheus-swarm
+            relativeTimeRange: { from: 60, to: 0 }
+            model: { refId: A, instant: true, expr: 'up{job="fireguard-app"}' }
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange: { from: 0, to: 0 }
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: lt, params: [1] }
+                  operator: { type: and }
+                  query: { params: [B] }
+                  reducer: { type: last, params: [] }
+
+      - uid: app-failed-logins-high
+        title: 'App: posible fuerza bruta (logins fallidos)'
+        condition: B
+        for: 1m
+        noDataState: OK
+        execErrState: Alerting
+        labels: { severity: warning }
+        annotations: { summary: 'Mas de 20 intentos de login fallidos en los ultimos 5 minutos.' }
+        data:
+          - refId: A
+            datasourceUid: prometheus-swarm
+            relativeTimeRange: { from: 300, to: 0 }
+            model: { refId: A, instant: true, expr: 'sum(increase(fireguard_login_attempts_total{result!="success"}[5m]))' }
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange: { from: 0, to: 0 }
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [20] }
+                  operator: { type: and }
+                  query: { params: [B] }
+                  reducer: { type: last, params: [] }
+
+      - uid: app-5xx-rate-high
+        title: 'App: tasa de errores 5xx'
+        condition: B
+        for: 2m
+        noDataState: OK
+        execErrState: Alerting
+        labels: { severity: critical }
+        annotations: { summary: 'La app esta devolviendo errores 5xx de forma sostenida.' }
+        data:
+          - refId: A
+            datasourceUid: prometheus-swarm
+            relativeTimeRange: { from: 300, to: 0 }
+            model: { refId: A, instant: true, expr: 'sum(rate(fireguard_http_requests_total{status_code=~"5.."}[5m]))' }
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange: { from: 0, to: 0 }
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+                  operator: { type: and }
+                  query: { params: [B] }
+                  reducer: { type: last, params: [] }

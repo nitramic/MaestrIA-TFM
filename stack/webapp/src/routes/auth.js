@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
 const { getCompanyPool } = require('../db');
 const { slugFromEmail, issueSession, clearSession, requireAuth } = require('../auth');
+const { loginAttemptsTotal } = require('../metrics');
 
 const router = express.Router();
 
@@ -20,7 +21,13 @@ const loginLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Demasiadas solicitudes. Intente nuevamente en unos minutos.' },
+  handler: (req, res) => {
+    if (req.path === '/login') {
+      const slug = slugFromEmail((req.body && req.body.email) || '') || 'unknown';
+      loginAttemptsTotal.inc({ result: 'rate_limited', company: slug });
+    }
+    res.status(429).json({ error: 'Demasiadas solicitudes. Intente nuevamente en unos minutos.' });
+  },
 });
 
 function minutesLeft(lockedUntil) {
@@ -42,11 +49,13 @@ router.post('/login', loginLimiter, async (req, res) => {
   try {
     entry = await getCompanyPool(slug);
   } catch (err) {
+    loginAttemptsTotal.inc({ result: 'db_error', company: slug });
     return res.status(503).json({ error: 'No se pudo contactar la base de datos.' });
   }
 
   if (!entry) {
     await bcrypt.compare(password, DUMMY_HASH);
+    loginAttemptsTotal.inc({ result: 'unknown_account', company: slug });
     return res.status(401).json(INVALID);
   }
 
@@ -60,6 +69,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     if (rows.length === 0) {
       await bcrypt.compare(password, DUMMY_HASH);
+      loginAttemptsTotal.inc({ result: 'unknown_account', company: slug });
       return res.status(401).json(INVALID);
     }
 
@@ -67,10 +77,12 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     if (user.locked) {
       await bcrypt.compare(password, DUMMY_HASH);
+      loginAttemptsTotal.inc({ result: 'account_locked_admin', company: slug });
       return res.status(423).json({ error: 'Cuenta bloqueada por el administrador. Contacte a su administrador.' });
     }
 
     if (user.locked_until && new Date(user.locked_until).getTime() > Date.now()) {
+      loginAttemptsTotal.inc({ result: 'account_locked_temp', company: slug });
       return res.status(429).json({
         error: `Cuenta bloqueada temporalmente. Intente nuevamente en ${minutesLeft(user.locked_until)} minuto(s).`,
       });
@@ -85,11 +97,13 @@ router.post('/login', loginLimiter, async (req, res) => {
           "UPDATE users SET failed_attempts = $1, locked_until = now() + interval '5 minutes' WHERE id = $2",
           [attempts, user.id]
         );
+        loginAttemptsTotal.inc({ result: 'too_many_attempts', company: slug });
         return res.status(429).json({
           error: `Demasiados intentos fallidos. Cuenta bloqueada por ${LOCK_MINUTES} minutos.`,
         });
       }
       await pool.query('UPDATE users SET failed_attempts = $1 WHERE id = $2', [attempts, user.id]);
+      loginAttemptsTotal.inc({ result: 'invalid_credentials', company: slug });
       return res.status(401).json(INVALID);
     }
 
@@ -106,6 +120,8 @@ router.post('/login', loginLimiter, async (req, res) => {
       companyName: company.display_name,
     });
 
+    loginAttemptsTotal.inc({ result: 'success', company: slug });
+
     return res.json({
       success: true,
       user: {
@@ -117,6 +133,7 @@ router.post('/login', loginLimiter, async (req, res) => {
       },
     });
   } catch (err) {
+    loginAttemptsTotal.inc({ result: 'db_error', company: slug });
     return res.status(503).json({ error: 'No se pudo contactar la base de datos.' });
   }
 });

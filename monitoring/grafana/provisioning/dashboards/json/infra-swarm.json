@@ -1,0 +1,81 @@
+{
+  "id": null,
+  "uid": "infra-swarm",
+  "title": "Infra - Swarm (nodos y servicios)",
+  "tags": ["fireguard", "infra", "swarm"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    { "id": 100, "type": "row", "title": "Nodos del swarm (swarm-manager, swarm-worker1, swarm-worker2)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 } },
+    {
+      "id": 1, "type": "table", "title": "Nodos activos (node-exporter up)", "gridPos": { "h": 5, "w": 6, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-swarm" },
+      "targets": [ { "expr": "up{job=\"node-exporter\"}", "format": "table", "instant": true } ],
+      "transformations": [ { "id": "organize", "options": { "excludeByName": { "Time": true, "__name__": true, "instance": true, "job": true }, "renameByName": { "node": "Nodo", "Value": "Up" } } } ]
+    },
+    {
+      "id": 2, "type": "timeseries", "title": "CPU por nodo", "gridPos": { "h": 8, "w": 9, "x": 6, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-swarm" },
+      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
+      "targets": [ { "expr": "100 - (avg by (node) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)", "legendFormat": "{{node}}" } ]
+    },
+    {
+      "id": 3, "type": "timeseries", "title": "Memoria por nodo", "gridPos": { "h": 8, "w": 9, "x": 15, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-swarm" },
+      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
+      "targets": [ { "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100", "legendFormat": "{{node}}" } ]
+    },
+    {
+      "id": 4, "type": "timeseries", "title": "Disco por nodo (/var/lib/docker)", "gridPos": { "h": 7, "w": 12, "x": 0, "y": 9 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-swarm" },
+      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
+      "targets": [ { "expr": "100 - ((node_filesystem_avail_bytes{mountpoint=\"/var/lib/docker\"} / node_filesystem_size_bytes{mountpoint=\"/var/lib/docker\"}) * 100)", "legendFormat": "{{node}}" } ]
+    },
+    {
+      "id": 5, "type": "timeseries", "title": "Red por nodo (RX/TX)", "gridPos": { "h": 7, "w": 12, "x": 12, "y": 9 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-swarm" },
+      "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum by (node) (rate(node_network_receive_bytes_total{device!~\"lo|veth.*\"}[5m]))", "legendFormat": "{{node}} RX" },
+        { "expr": "sum by (node) (rate(node_network_transmit_bytes_total{device!~\"lo|veth.*\"}[5m]))", "legendFormat": "{{node}} TX" }
+      ]
+    },
+    { "id": 101, "type": "row", "title": "Servicios (app1, app2, admin-worker, lb, pg-directory, pg-<empresa>...)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 } },
+    {
+      "id": 10, "type": "timeseries", "title": "CPU por servicio", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 17 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-swarm" },
+      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
+      "targets": [ { "expr": "sum(rate(container_cpu_usage_seconds_total{container_label_com_docker_swarm_service_name!=\"\"}[5m])) by (container_label_com_docker_swarm_service_name) * 100", "legendFormat": "{{container_label_com_docker_swarm_service_name}}" } ]
+    },
+    {
+      "id": 11, "type": "timeseries", "title": "Memoria por servicio", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 17 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-swarm" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [ { "expr": "sum(container_memory_usage_bytes{container_label_com_docker_swarm_service_name!=\"\"}) by (container_label_com_docker_swarm_service_name)", "legendFormat": "{{container_label_com_docker_swarm_service_name}}" } ]
+    },
+    {
+      "id": 12, "type": "timeseries", "title": "Disco (filesystem) por servicio", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 25 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-swarm" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [ { "expr": "sum(container_fs_usage_bytes{container_label_com_docker_swarm_service_name!=\"\"}) by (container_label_com_docker_swarm_service_name)", "legendFormat": "{{container_label_com_docker_swarm_service_name}}" } ]
+    },
+    {
+      "id": 13, "type": "timeseries", "title": "Red por servicio (RX+TX)", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 25 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-swarm" },
+      "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum(rate(container_network_receive_bytes_total{container_label_com_docker_swarm_service_name!=\"\"}[5m])) by (container_label_com_docker_swarm_service_name)", "legendFormat": "{{container_label_com_docker_swarm_service_name}} RX" },
+        { "expr": "sum(rate(container_network_transmit_bytes_total{container_label_com_docker_swarm_service_name!=\"\"}[5m])) by (container_label_com_docker_swarm_service_name)", "legendFormat": "{{container_label_com_docker_swarm_service_name}} TX" }
+      ]
+    },
+    {
+      "id": 14, "type": "table", "title": "Tasks/servicios activos por nodo", "gridPos": { "h": 6, "w": 24, "x": 0, "y": 33 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-swarm" },
+      "targets": [ { "expr": "container_last_seen{container_label_com_docker_swarm_service_name!=\"\"}", "format": "table", "instant": true } ],
+      "transformations": [ { "id": "organize", "options": { "excludeByName": { "Time": true, "Value": true, "__name__": true, "id": true, "image": true, "name": true, "container_label_com_docker_swarm_node_id": true, "container_label_com_docker_swarm_service_id": true, "container_label_com_docker_swarm_task_id": true, "container_label_com_docker_swarm_task_name": true }, "renameByName": { "container_label_com_docker_swarm_service_name": "Servicio", "node": "Nodo" } } } ]
+    }
+  ]
+}

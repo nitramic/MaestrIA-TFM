@@ -1,0 +1,4 @@
+node_modules/
+.env
+monitoring/.env
+monitoring/grafana/provisioning/alerting/contactpoints.yaml

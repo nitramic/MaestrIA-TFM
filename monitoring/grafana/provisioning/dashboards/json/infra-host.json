@@ -1,0 +1,78 @@
+{
+  "id": null,
+  "uid": "infra-host",
+  "title": "Infra - Host (contenedores DinD)",
+  "tags": ["fireguard", "infra", "host"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    { "id": 100, "type": "row", "title": "Host real (maquina fisica)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 } },
+    {
+      "id": 1, "type": "gauge", "title": "CPU host", "gridPos": { "h": 6, "w": 6, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-host" },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "thresholds": { "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 90 } ] } }, "overrides": [] },
+      "targets": [ { "expr": "100 - (avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)", "legendFormat": "CPU %" } ]
+    },
+    {
+      "id": 2, "type": "gauge", "title": "Memoria host", "gridPos": { "h": 6, "w": 6, "x": 6, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-host" },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "thresholds": { "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 90 } ] } }, "overrides": [] },
+      "targets": [ { "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100", "legendFormat": "Memoria %" } ]
+    },
+    {
+      "id": 3, "type": "gauge", "title": "Disco host (/)", "gridPos": { "h": 6, "w": 6, "x": 12, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-host" },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "thresholds": { "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 90 } ] } }, "overrides": [] },
+      "targets": [ { "expr": "100 - ((node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"}) * 100)", "legendFormat": "Disco %" } ]
+    },
+    {
+      "id": 4, "type": "timeseries", "title": "Red host (RX/TX)", "gridPos": { "h": 6, "w": 6, "x": 18, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-host" },
+      "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] },
+      "targets": [
+        { "expr": "sum(rate(node_network_receive_bytes_total{device!~\"lo|veth.*\"}[5m]))", "legendFormat": "RX" },
+        { "expr": "sum(rate(node_network_transmit_bytes_total{device!~\"lo|veth.*\"}[5m]))", "legendFormat": "TX" }
+      ]
+    },
+    { "id": 101, "type": "row", "title": "Contenedores (swarm-manager, swarm-worker1, swarm-worker2, registry, ...)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 7 } },
+    {
+      "id": 10, "type": "timeseries", "title": "CPU por contenedor", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-host" },
+      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
+      "targets": [ { "expr": "docker_container_cpu_percent", "legendFormat": "{{name}}" } ]
+    },
+    {
+      "id": 11, "type": "timeseries", "title": "Memoria por contenedor", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-host" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [ { "expr": "docker_container_memory_usage_bytes", "legendFormat": "{{name}}" } ]
+    },
+    {
+      "id": 12, "type": "timeseries", "title": "Disco (E/S acumulada) por contenedor", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-host" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [
+        { "expr": "docker_container_blkio_read_bytes_total", "legendFormat": "{{name}} lectura" },
+        { "expr": "docker_container_blkio_write_bytes_total", "legendFormat": "{{name}} escritura" }
+      ]
+    },
+    {
+      "id": 13, "type": "timeseries", "title": "Red por contenedor (RX/TX, acumulado)", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-host" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [
+        { "expr": "docker_container_network_receive_bytes_total", "legendFormat": "{{name}} RX" },
+        { "expr": "docker_container_network_transmit_bytes_total", "legendFormat": "{{name}} TX" }
+      ]
+    },
+    {
+      "id": 14, "type": "table", "title": "Contenedores activos", "gridPos": { "h": 6, "w": 24, "x": 0, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-host" },
+      "targets": [ { "expr": "docker_container_memory_usage_bytes", "format": "table", "instant": true } ],
+      "transformations": [ { "id": "organize", "options": { "excludeByName": { "Time": true, "__name__": true, "instance": true, "job": true }, "renameByName": { "name": "Contenedor", "Value": "Memoria (bytes)" } } } ]
+    }
+  ]
+}
