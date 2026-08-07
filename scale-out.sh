@@ -12,6 +12,10 @@
 #
 # Requiere que ./deploy-webapp.sh ya se haya ejecutado (app1/app2 + lb
 # desplegados) y que la imagen registry:5000/fireguard-webapp:latest exista.
+# Usa el mismo secrets.env que ./deploy-webapp.sh (JWT_SECRET/INTERNAL_ADMIN_TOKEN/
+# DIRECTORY_DB_PASSWORD tienen que coincidir con los que ya tiene el stack
+# corriendo; no regeneres secrets.env entre un deploy y otro sin redeployar
+# ./deploy-webapp.sh tambien).
 set -euo pipefail
 
 COMPOSE="docker compose"
@@ -21,6 +25,22 @@ MIN_APPS=2
 MAX_APPS=6
 WORKER3_FROM=5
 EXTRA_WORKER="swarm-worker3"
+SECRETS_FILE="secrets.env"
+
+if [ ! -f "${SECRETS_FILE}" ]; then
+  echo "ERROR: falta ${SECRETS_FILE}. Ejecuta ./generate-secrets.sh primero." >&2
+  exit 1
+fi
+set -a
+# shellcheck disable=SC1090
+source "${SECRETS_FILE}"
+set +a
+for var in JWT_SECRET INTERNAL_ADMIN_TOKEN DIRECTORY_DB_PASSWORD; do
+  if [ -z "${!var:-}" ]; then
+    echo "ERROR: ${var} vacío en ${SECRETS_FILE}. Corre ./generate-secrets.sh --force." >&2
+    exit 1
+  fi
+done
 
 exec_manager() { $COMPOSE exec -T swarm-manager "$@"; }
 
@@ -59,9 +79,9 @@ exec_manager docker service create \
   --env DIRECTORY_DB_PORT=5432 \
   --env DIRECTORY_DB_NAME=directory \
   --env DIRECTORY_DB_USER=postgres \
-  --env DIRECTORY_DB_PASSWORD=postgres \
-  --env JWT_SECRET=62b960ad53e105c1ea31bce0b7ac0b44e1d0b7fe6d988c1f3a66848cf9d28c0c \
-  --env INTERNAL_ADMIN_TOKEN=01ce3c0c69e0c106c298a176383b52274a2dc51652b22c88 \
+  --env DIRECTORY_DB_PASSWORD="${DIRECTORY_DB_PASSWORD}" \
+  --env JWT_SECRET="${JWT_SECRET}" \
+  --env INTERNAL_ADMIN_TOKEN="${INTERNAL_ADMIN_TOKEN}" \
   --restart-condition any \
   "${placement_args[@]}" \
   registry:5000/fireguard-webapp:latest >/dev/null

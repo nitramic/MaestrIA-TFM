@@ -13,6 +13,23 @@ set -euo pipefail
 COMPOSE="docker compose"
 NETWORK="fireguard-net"
 SLUG="demo"
+SECRETS_FILE="secrets.env"
+
+if [ ! -f "${SECRETS_FILE}" ]; then
+  echo "ERROR: falta ${SECRETS_FILE}. Ejecuta ./generate-secrets.sh primero." >&2
+  exit 1
+fi
+set -a
+# shellcheck disable=SC1090
+source "${SECRETS_FILE}"
+set +a
+if [ -z "${DEMO_ADMIN_PASSWORD_HASH:-}" ] || [ -z "${DEMO_ADMIN_PASSWORD:-}" ]; then
+  echo "ERROR: DEMO_ADMIN_PASSWORD/_HASH vacío en ${SECRETS_FILE}. Corre ./generate-secrets.sh --force." >&2
+  exit 1
+fi
+
+TMP_DIR=$(mktemp -d)
+trap 'rm -rf "${TMP_DIR}"' EXIT
 DISPLAY_NAME="Empresa Demo"
 # Fixed, old timestamp so "demo" always sorts last regardless of when other
 # companies are added (companies list is ORDER BY created_at DESC).
@@ -21,10 +38,14 @@ DEMO_CREATED_AT="2000-01-01T00:00:00Z"
 exec_manager() { $COMPOSE exec -T swarm-manager "$@"; }
 
 echo "==> Desplegando base de datos para '${SLUG}'..."
-DEPLOY_OUT=$(./deploy-postgres.sh "${SLUG}" postgres postgres)
+DEPLOY_OUT=$(./deploy-postgres.sh "${SLUG}")
 echo "${DEPLOY_OUT}"
 DB_USER=postgres
-DB_PASSWORD=postgres
+DB_PASSWORD=$(echo "${DEPLOY_OUT}" | grep -oP '(?<=Password: ).*')
+if [ -z "${DB_PASSWORD}" ]; then
+  echo "ERROR: no se pudo leer el password generado por deploy-postgres.sh." >&2
+  exit 1
+fi
 
 echo "==> Adjuntando '${NETWORK}' a pg-${SLUG}..."
 exec_manager docker service update --network-add "${NETWORK}" "pg-${SLUG}" >/dev/null
@@ -55,8 +76,10 @@ $COMPOSE exec -T swarm-manager sh -c "docker exec -i ${CID} psql -U ${DB_USER} -
   < stack/webapp/sql/company_schema.sql
 
 echo "==> Cargando datos de ejemplo..."
+sed -e "s|__DEMO_PASSWORD_HASH__|${DEMO_ADMIN_PASSWORD_HASH}|" \
+  stack/webapp/sql/seed_demo.sql > "${TMP_DIR}/seed_demo.sql"
 $COMPOSE exec -T swarm-manager sh -c "docker exec -i ${CID} psql -U ${DB_USER} -d ${SLUG} -v ON_ERROR_STOP=1" \
-  < stack/webapp/sql/seed_demo.sql
+  < "${TMP_DIR}/seed_demo.sql"
 
 echo "==> Esperando a pg-directory..."
 DIR_CID=$(wait_for_container "pg-directory")
@@ -82,7 +105,7 @@ SQL
 cat <<EOF
 
 Empresa '${SLUG}' lista (con datos de ejemplo).
-  Login admin:      admin@${SLUG} / Demo1234!
-  Login inspector:  inspector@${SLUG} / Demo1234!
-  Login bloqueado:  locked@${SLUG} / Demo1234! (para probar el desbloqueo desde /admin)
+  Login admin:      admin@${SLUG} / ${DEMO_ADMIN_PASSWORD}
+  Login inspector:  inspector@${SLUG} / ${DEMO_ADMIN_PASSWORD}
+  Login bloqueado:  locked@${SLUG} / ${DEMO_ADMIN_PASSWORD} (para probar el desbloqueo desde /admin)
 EOF

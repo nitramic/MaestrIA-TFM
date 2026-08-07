@@ -9,6 +9,19 @@ propia, los une en un clúster Swarm, y despliega ahí la webapp **FireGuard**
 - Docker Engine con soporte para contenedores `privileged` (necesario para DinD).
 - Docker Compose v2 (`docker compose`).
 
+## 0. Generar secretos
+
+Antes de desplegar nada, generar `secrets.env` (fuera de git, no se commitea):
+
+```bash
+./generate-secrets.sh
+```
+
+Genera valores random para `JWT_SECRET`, `INTERNAL_ADMIN_TOKEN`,
+`DIRECTORY_DB_PASSWORD`, el password de Grafana, y el password/hash del
+superadmin y de la empresa demo. `deploy-webapp.sh`, `deploy-demo.sh` y
+`scale-out.sh` lo leen automáticamente — sin este archivo, no despliegan.
+
 ## 1. Levantar el swarm
 
 ```bash
@@ -47,7 +60,8 @@ La app queda disponible en:
 - Webapp: http://localhost:8081
 - Estado del balanceador: http://localhost:8081/balancer-manager
 - Panel de administración: http://localhost:8081/admin
-  (usuario: `superadmin@fireguard.local`, password: `SuperAdmin1234!`)
+  (usuario: `superadmin@fireguard.local`, password: ver `SUPERADMIN_PASSWORD`
+  en `secrets.env`, o la salida de `./deploy-webapp.sh`)
 
 Servicios y réplicas del stack:
 
@@ -107,8 +121,9 @@ inspecciones) — siempre queda última en el listado del panel admin:
 ./deploy-demo.sh
 ```
 
-Login demo: `admin@demo` / `Demo1234!` (también `inspector@demo` y
-`locked@demo`, misma password, para probar roles y desbloqueo de cuenta).
+Login demo: `admin@demo` (también `inspector@demo` y `locked@demo`, para
+probar roles y desbloqueo de cuenta) / password: ver `DEMO_ADMIN_PASSWORD`
+en `secrets.env`, o la salida de `./deploy-demo.sh`.
 
 Desde el panel de administración también se puede:
 
