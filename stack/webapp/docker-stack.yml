@@ -36,6 +36,13 @@ services:
       - fireguard-net
     ports:
       - "8081:80"
+    configs:
+      # Version inicial (app1 + app2). scale-out.sh / scale-in.sh la
+      # reemplazan por una nueva version (fireguard-lb-config-v2, v3, ...)
+      # cada vez que cambia el numero de nodos de app -- ver
+      # stack/webapp/lb/generate-lb-conf.sh.
+      - source: fireguard-lb-config-v1
+        target: /usr/local/apache2/conf/extra/lb.conf
     deploy:
       replicas: 1
       restart_policy:
@@ -73,3 +80,7 @@ services:
 networks:
   fireguard-net:
     external: true
+
+configs:
+  fireguard-lb-config-v1:
+    file: ./lb/lb.conf

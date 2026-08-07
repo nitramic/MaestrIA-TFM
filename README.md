@@ -62,6 +62,31 @@ Eliminar solo el stack de la app (mantiene el swarm vivo):
 docker compose exec swarm-manager docker stack rm fireguard
 ```
 
+### Escalar la webapp
+
+El stack arranca con 2 nodos de app (`app1`, `app2`). `scale-out.sh` /
+`scale-in.sh` agregan o quitan nodos `appN` uno a la vez, respetando un
+mínimo de 2 y un máximo de 6, y regeneran la configuración del balanceador
+Apache (`stack/webapp/lb/lb.conf`) para incluir/excluir el nodo:
+
+```bash
+./scale-out.sh   # agrega el siguiente nodo (hasta app6)
+./scale-in.sh    # quita el nodo mas alto (nunca por debajo de app1/app2)
+```
+
+`app1`-`app4` se reparten entre los 2 workers existentes (`swarm-worker1`,
+`swarm-worker2`). A partir de `app5`, `scale-out.sh` levanta bajo demanda un
+tercer worker (`swarm-worker3`, ver `add-swarm-worker.sh`) y aloja ahí
+`app5` y `app6` en exclusiva. Al escalar hacia adentro, `swarm-worker3` se
+deja corriendo (inactivo) para poder volver a escalar rápido.
+
+Para probar el escalado a las 6 instancias y el reparto de carga del
+balanceador de punta a punta:
+
+```bash
+./test-scale-balancer.sh
+```
+
 ## 3. Dar de alta empresas
 
 Cada empresa tiene su propia base Postgres, aislada de las demás, registrada
