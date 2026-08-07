@@ -1,0 +1,21 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # docker-stats-exporter: CPU/memoria/disco/red por contenedor del host
+  # real (swarm-manager, swarm-worker1, swarm-worker2, registry, y los
+  # propios servicios de monitoreo), via la API de stats de Docker.
+  - job_name: docker-stats-exporter
+    static_configs:
+      - targets: ['docker-stats-exporter:9200']
+
+  # node-exporter: metricas del host real (CPU, memoria, disco, red a nivel
+  # de maquina, no de contenedor).
+  - job_name: node-exporter
+    static_configs:
+      - targets: ['node-exporter:9100']

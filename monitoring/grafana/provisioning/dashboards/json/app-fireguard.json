@@ -1,0 +1,79 @@
+{
+  "id": null,
+  "uid": "app-fireguard",
+  "title": "App - FireGuard (uso y logins)",
+  "tags": ["fireguard", "app"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    { "id": 100, "type": "row", "title": "Logins", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 } },
+    {
+      "id": 1, "type": "stat", "title": "Logins exitosos (1h)", "gridPos": { "h": 5, "w": 6, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-swarm" },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "green" } }, "overrides": [] },
+      "targets": [ { "expr": "sum(increase(fireguard_login_attempts_total{result=\"success\"}[1h]))" } ]
+    },
+    {
+      "id": 2, "type": "stat", "title": "Logins fallidos (1h)", "gridPos": { "h": 5, "w": 6, "x": 6, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-swarm" },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "red" } }, "overrides": [] },
+      "targets": [ { "expr": "sum(increase(fireguard_login_attempts_total{result!=\"success\"}[1h]))" } ]
+    },
+    {
+      "id": 3, "type": "piechart", "title": "Logins fallidos por motivo (6h)", "gridPos": { "h": 8, "w": 6, "x": 12, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-swarm" },
+      "targets": [ { "expr": "sum(increase(fireguard_login_attempts_total{result!=\"success\"}[6h])) by (result)", "legendFormat": "{{result}}" } ]
+    },
+    {
+      "id": 4, "type": "table", "title": "Logins fallidos por empresa (6h)", "gridPos": { "h": 8, "w": 6, "x": 18, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-swarm" },
+      "targets": [ { "expr": "sum(increase(fireguard_login_attempts_total{result!=\"success\"}[6h])) by (company)", "format": "table", "instant": true } ],
+      "transformations": [ { "id": "organize", "options": { "excludeByName": { "Time": true }, "renameByName": { "company": "Empresa", "Value": "Logins fallidos" } } } ]
+    },
+    {
+      "id": 5, "type": "timeseries", "title": "Logins en el tiempo (exito vs. fallo)", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 9 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-swarm" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [
+        { "matcher": { "id": "byName", "options": "Exitosos" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } } ] },
+        { "matcher": { "id": "byName", "options": "Fallidos" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } } ] }
+      ] },
+      "targets": [
+        { "expr": "sum(increase(fireguard_login_attempts_total{result=\"success\"}[5m]))", "legendFormat": "Exitosos" },
+        { "expr": "sum(increase(fireguard_login_attempts_total{result!=\"success\"}[5m]))", "legendFormat": "Fallidos" }
+      ]
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "Logins fallidos por motivo (en el tiempo)", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 9 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-swarm" },
+      "targets": [ { "expr": "sum(increase(fireguard_login_attempts_total{result!=\"success\"}[5m])) by (result)", "legendFormat": "{{result}}" } ]
+    },
+    { "id": 101, "type": "row", "title": "Uso de la app (HTTP)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 } },
+    {
+      "id": 10, "type": "timeseries", "title": "Requests por segundo (por servicio)", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-swarm" },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [ { "expr": "sum(rate(fireguard_http_requests_total[5m])) by (service)", "legendFormat": "{{service}}" } ]
+    },
+    {
+      "id": 11, "type": "timeseries", "title": "Requests por endpoint (top)", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-swarm" },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [ { "expr": "sum(rate(fireguard_http_requests_total[5m])) by (method, route)", "legendFormat": "{{method}} {{route}}" } ]
+    },
+    {
+      "id": 12, "type": "timeseries", "title": "Codigos de respuesta 4xx/5xx", "gridPos": { "h": 8, "w": 12, "x": 0, "y": 26 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-swarm" },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [ { "expr": "sum(rate(fireguard_http_requests_total{status_code=~\"4..|5..\"}[5m])) by (status_code, route)", "legendFormat": "{{status_code}} {{route}}" } ]
+    },
+    {
+      "id": 13, "type": "timeseries", "title": "Latencia p95 por endpoint", "gridPos": { "h": 8, "w": 12, "x": 12, "y": 26 },
+      "datasource": { "type": "prometheus", "uid": "prometheus-swarm" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [ { "expr": "histogram_quantile(0.95, sum(rate(fireguard_http_request_duration_seconds_bucket[5m])) by (le, route))", "legendFormat": "{{route}}" } ]
+    }
+  ]
+}

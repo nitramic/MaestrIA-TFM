@@ -19,6 +19,7 @@ services:
       - "7946:7946"   # container network discovery
       - "4789:4789/udp" # overlay network traffic
       - "8081:8081"   # published port of the fireguard-lb stack service (routing mesh)
+      - "9091:9091"   # published port of the swarm-internal Prometheus (stack "monitoring")
       - "5001-5020:5001-5020" # rango de puertos para instancias individuales de postgres
     healthcheck:
       test: ["CMD", "docker", "info"]
@@ -89,6 +90,83 @@ services:
     volumes:
       - registry-data:/var/lib/registry
 
+  # --- Monitoreo de la capa host (los 4 contenedores DinD/registry vistos ---
+  # --- desde el docker real de la maquina) ---------------------------------
+
+  # cAdvisor no se puede usar aqui: este host expone su storage via el
+  # snapshotter de containerd (Driver "overlayfs" + driver-type
+  # "io.containerd.snapshotter.v1"), y cAdvisor (probado v0.49 y v0.52) no
+  # logra registrar los contenedores Docker en ese layout ("failed to
+  # identify the read-write layer ID"). En su lugar, un exportador propio
+  # lee la API de stats de Docker directamente (ver monitoring/docker-stats-exporter).
+  docker-stats-exporter:
+    build: ./monitoring/docker-stats-exporter
+    container_name: docker-stats-exporter
+    hostname: docker-stats-exporter
+    networks:
+      - dind-net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: node-exporter
+    hostname: node-exporter
+    networks:
+      - dind-net
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+
+  prometheus-host:
+    image: prom/prometheus:v2.55.1
+    container_name: prometheus-host
+    hostname: prometheus-host
+    networks:
+      - dind-net
+    volumes:
+      - ./monitoring/prometheus-host.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-host-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=15d'
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: grafana
+    hostname: grafana
+    networks:
+      - dind-net
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      # Sin :ro -- el entrypoint necesita escribir provisioning/alerting/contactpoints.yaml
+      # (generado a partir de contactpoints.yaml.template) con la URL real del webhook.
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    env_file:
+      - ./monitoring/.env
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    entrypoint:
+      - sh
+      - -c
+      - |
+        sed -e "s|__SLACK_WEBHOOK_URL__|$$SLACK_WEBHOOK_URL|" \
+          /etc/grafana/provisioning/alerting/contactpoints.yaml.template \
+          > /etc/grafana/provisioning/alerting/contactpoints.yaml
+        exec /run.sh
+    depends_on:
+      - prometheus-host
+
   # Optional: visualize the swarm state in a browser once it's initialized.
   # Start with: docker compose --profile viz up -d visualizer
   visualizer:
@@ -113,3 +191,5 @@ volumes:
   worker1-data:
   worker2-data:
   registry-data:
+  prometheus-host-data:
+  grafana-data:

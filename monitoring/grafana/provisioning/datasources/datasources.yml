@@ -1,0 +1,24 @@
+apiVersion: 1
+
+datasources:
+  # Metricas de los 4 contenedores DinD del host real (swarm-manager,
+  # swarm-worker1, swarm-worker2, registry) via cAdvisor+node-exporter.
+  - name: Prometheus-Host
+    uid: prometheus-host
+    type: prometheus
+    access: proxy
+    url: http://prometheus-host:9090
+    isDefault: true
+    editable: false
+
+  # Metricas de los nodos/servicios DENTRO del swarm (app1, app2,
+  # admin-worker, lb, pg-directory, pg-<empresa>) via el Prometheus
+  # desplegado como stack "monitoring" en el propio swarm, publicado por
+  # la routing mesh en el puerto 9091 de cualquier nodo (aqui, swarm-manager,
+  # que comparte red "dind-net" con Grafana).
+  - name: Prometheus-Swarm
+    uid: prometheus-swarm
+    type: prometheus
+    access: proxy
+    url: http://swarm-manager:9091
+    editable: false

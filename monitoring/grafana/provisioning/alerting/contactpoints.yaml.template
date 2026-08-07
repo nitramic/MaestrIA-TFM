@@ -1,0 +1,16 @@
+# Plantilla: el placeholder __SLACK_WEBHOOK_URL__ se reemplaza al arrancar
+# el contenedor (ver entrypoint del servicio "grafana" en docker-compose.yml)
+# con el valor de la variable de entorno SLACK_WEBHOOK_URL (monitoring/.env,
+# fuera de git). El archivo resultante, contactpoints.yaml, NO se commitea
+# (ver .gitignore) porque contiene la URL real del webhook.
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: slack-fireguard
+    receivers:
+      - uid: slack-fireguard-webhook
+        type: slack
+        settings:
+          url: __SLACK_WEBHOOK_URL__
+        disableResolveMessage: false
