@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Despliega la capa de monitoreo de infraestructura:
 #
-#  - Capa host (docker-compose.yml): cAdvisor + node-exporter + Prometheus
-#    + Grafana, viendo los 4 contenedores DinD del host real (swarm-manager,
-#    swarm-worker1, swarm-worker2, registry).
+#  - Capa host (docker-compose.yml): docker-stats-exporter + node-exporter +
+#    Prometheus + Grafana, viendo los 4 contenedores DinD del host real
+#    (swarm-manager, swarm-worker1, swarm-worker2, registry).
 #  - Capa swarm (stack "monitoring"): node-exporter + cAdvisor en modo
 #    global (uno por nodo) + Prometheus con auto-descubrimiento via la API
 #    de Swarm, viendo los servicios que corren dentro del swarm (app1, app2,
@@ -17,8 +17,8 @@ COMPOSE="docker compose"
 
 exec_manager() { $COMPOSE exec -T swarm-manager "$@"; }
 
-echo "==> Levantando monitoreo de capa host (cAdvisor, node-exporter, Prometheus, Grafana)..."
-$COMPOSE up -d cadvisor node-exporter prometheus-host grafana
+echo "==> Levantando monitoreo de capa host (docker-stats-exporter, node-exporter, Prometheus, Grafana)..."
+$COMPOSE up -d docker-stats-exporter node-exporter prometheus-host grafana
 
 echo "==> Verificando red overlay 'fireguard-net'..."
 if ! exec_manager docker network inspect fireguard-net >/dev/null 2>&1; then
