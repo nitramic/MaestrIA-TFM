@@ -76,6 +76,34 @@ services:
       swarm-manager:
         condition: service_healthy
 
+  # 3er worker, agregado bajo demanda por scale-out.sh (via
+  # add-swarm-worker.sh) cuando la app necesita un 5to/6to nodo y
+  # swarm-worker1/2 ya estan a su capacidad "dedicada" (app3/app4).
+  # No se levanta con `docker compose up -d` por defecto: solo cuando
+  # add-swarm-worker.sh hace `docker compose up -d swarm-worker3`.
+  swarm-worker3:
+    image: docker:27-dind
+    container_name: swarm-worker3
+    hostname: swarm-worker3
+    privileged: true
+    environment:
+      - DOCKER_TLS_CERTDIR=
+    command: ["dockerd", "--host=unix:///var/run/docker.sock", "--host=tcp://0.0.0.0:2375", "--insecure-registry=registry:5000"]
+    networks:
+      dind-net:
+        aliases:
+          - swarm-worker3
+    volumes:
+      - worker3-data:/var/lib/docker
+    healthcheck:
+      test: ["CMD", "docker", "info"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      swarm-manager:
+        condition: service_healthy
+
   # Registro local de imágenes: cada nodo DinD tiene su propio almacén de
   # imágenes aislado, así que necesitan un registry compartido para poder
   # ejecutar en el swarm una imagen construida en el manager.
@@ -190,6 +218,7 @@ volumes:
   manager-data:
   worker1-data:
   worker2-data:
+  worker3-data:
   registry-data:
   prometheus-host-data:
   grafana-data:
