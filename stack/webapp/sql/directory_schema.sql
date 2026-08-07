@@ -34,7 +34,8 @@ CREATE TABLE IF NOT EXISTS admin_users (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Demo login: superadmin@fireguard.local / SuperAdmin1234!
+-- Login superadmin: el hash se sustituye en tiempo de deploy (deploy-webapp.sh)
+-- a partir de SUPERADMIN_PASSWORD_HASH en secrets.env (ver generate-secrets.sh).
 INSERT INTO admin_users (email, password_hash, full_name)
-VALUES ('superadmin@fireguard.local', '$2b$10$TlLOEDlfPHFz5/xHhleyw.VmMn4lZnMYcWiMmOAVW5kz4db/MEz6.', 'Super Admin')
+VALUES ('superadmin@fireguard.local', '__SUPERADMIN_PASSWORD_HASH__', 'Super Admin')
 ON CONFLICT (email) DO NOTHING;

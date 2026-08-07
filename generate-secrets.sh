@@ -1,29 +1,29 @@
 #!/usr/bin/env bash
 # Genera secrets.env (fuera de git) con todos los secretos/credenciales que
-# usa el proyecto. Pensado para correr UNA VEZ por entorno (local, VM de
-# staging, VM remota) y despues copiar secrets.env a mano a donde haga
-# falta -- por eso este script solo IMPRIME/GUARDA valores, nunca los
-# aplica solo al stack.
+# usa el proyecto. Correr UNA VEZ por entorno (local, VM de staging, VM
+# remota), ANTES de desplegar infra y app -- deploy-webapp.sh, deploy-demo.sh
+# y scale-out.sh lo leen automaticamente (y fallan con un mensaje claro si
+# no existe). secrets.env tambien se puede copiar a mano a otro entorno.
 #
-# IMPORTANTE -- esto es una fotografia de "que secretos existen", no un
-# cableado automatico:
-#   - GF_SECURITY_ADMIN_PASSWORD ya esta conectado (docker-compose.yml lee
-#     monitoring/.env). Si generas uno nuevo ahi, alcanza con reiniciar
-#     grafana.
-#   - JWT_SECRET, INTERNAL_ADMIN_TOKEN y DIRECTORY_DB_PASSWORD estan
-#     hardcodeados directo en stack/webapp/docker-stack.yml y scale-out.sh
-#     (no leen env todavia). Regenerarlos ACA no cambia nada por si solo:
-#     hay que llevarlos a mano a esos archivos, y si el stack ya esta
-#     desplegado, coordinar el cambio (rotar JWT_SECRET desloguea a todos;
-#     cambiar DIRECTORY_DB_PASSWORD rompe la conexion si el Postgres
-#     'pg-directory' ya fue creado con el valor viejo).
-#   - Los passwords de superadmin/demo estan hasheados (bcrypt) en
-#     stack/webapp/sql/directory_schema.sql y seed_demo.sql. Regenerarlos
-#     ACA da un password en texto plano + su hash bcrypt para reemplazar
-#     a mano en el SQL; solo tiene efecto en un deploy nuevo (re-sembrar
-#     una base ya existente requiere un UPDATE manual).
+# Que hace cada valor, y quien lo consume:
+#   - GF_SECURITY_ADMIN_USER/PASSWORD: copialos a monitoring/.env junto con
+#     SLACK_WEBHOOK_URL (docker-compose.yml ya lee ese archivo).
+#   - JWT_SECRET / INTERNAL_ADMIN_TOKEN / DIRECTORY_DB_PASSWORD: los leen
+#     deploy-webapp.sh y scale-out.sh (interpolados en
+#     stack/webapp/docker-stack.yml al correr `docker stack deploy`).
+#   - SUPERADMIN_PASSWORD_HASH / DEMO_ADMIN_PASSWORD_HASH: deploy-webapp.sh /
+#     deploy-demo.sh los sustituyen en directory_schema.sql / seed_demo.sql
+#     antes de aplicarlos.
 #   - SLACK_WEBHOOK_URL no se puede generar: hay que pegarlo a mano
 #     (Slack -> Incoming Webhooks de tu workspace).
+#
+# IMPORTANTE sobre --force en un entorno YA desplegado: regenerar
+# JWT_SECRET desloguea a todos los usuarios; regenerar DIRECTORY_DB_PASSWORD
+# rompe la conexion si el Postgres 'pg-directory' ya fue creado con el
+# valor viejo (no hay rotacion automatica del password ya aplicado a un
+# Postgres corriendo); regenerar los hashes de superadmin/demo no tiene
+# efecto en una base ya sembrada (hace falta un UPDATE manual). Para un
+# primer deploy (el caso normal) no hay ningun problema.
 #
 # Uso:
 #   ./generate-secrets.sh              # genera secrets.env (si no existe)
@@ -102,34 +102,31 @@ cat > "$OUT_FILE" <<EOF
 # Generado por generate-secrets.sh el $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 # NO commitear este archivo (ya esta en .gitignore).
 
-# --- Grafana (ya cableado: docker-compose.yml lee monitoring/.env) ---
-# Si copias esto a monitoring/.env junto con SLACK_WEBHOOK_URL, alcanza
-# con "docker compose restart grafana".
-GF_SECURITY_ADMIN_USER=admin
-GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+# --- Grafana (docker-compose.yml lee monitoring/.env, no este archivo ---
+# --- directamente -- copia estas dos lineas ahi junto con SLACK_WEBHOOK_URL) ---
+GF_SECURITY_ADMIN_USER='admin'
+GF_SECURITY_ADMIN_PASSWORD='${GF_SECURITY_ADMIN_PASSWORD}'
 
-# --- App fireguard (NO cableado todavia -- hoy hardcodeado en ---
-# --- stack/webapp/docker-stack.yml y scale-out.sh; ver comentario ---
-# --- arriba antes de rotar esto en un entorno ya desplegado) ---
-JWT_SECRET=${JWT_SECRET}
-INTERNAL_ADMIN_TOKEN=${INTERNAL_ADMIN_TOKEN}
-DIRECTORY_DB_PASSWORD=${DIRECTORY_DB_PASSWORD}
+# --- App fireguard: leidos por deploy-webapp.sh / scale-out.sh ---
+JWT_SECRET='${JWT_SECRET}'
+INTERNAL_ADMIN_TOKEN='${INTERNAL_ADMIN_TOKEN}'
+DIRECTORY_DB_PASSWORD='${DIRECTORY_DB_PASSWORD}'
 
-# --- Login superadmin (panel /admin) -- reemplazar a mano en ---
-# --- stack/webapp/sql/directory_schema.sql (email + hash), y usar ---
-# --- SUPERADMIN_PASSWORD para loguearse. Solo aplica en un deploy nuevo. ---
-SUPERADMIN_EMAIL=superadmin@fireguard.local
-SUPERADMIN_PASSWORD=${SUPERADMIN_PASSWORD}
-SUPERADMIN_PASSWORD_HASH=${SUPERADMIN_PASSWORD_HASH}
+# --- Login superadmin (panel /admin) -- aplicado por deploy-webapp.sh ---
+SUPERADMIN_EMAIL='superadmin@fireguard.local'
+SUPERADMIN_PASSWORD='${SUPERADMIN_PASSWORD}'
+SUPERADMIN_PASSWORD_HASH='${SUPERADMIN_PASSWORD_HASH}'
 
-# --- Login empresa demo (admin@demo) -- reemplazar a mano en ---
-# --- stack/webapp/sql/seed_demo.sql. Solo aplica en un deploy nuevo. ---
-DEMO_ADMIN_PASSWORD=${DEMO_ADMIN_PASSWORD}
-DEMO_ADMIN_PASSWORD_HASH=${DEMO_ADMIN_PASSWORD_HASH}
+# --- Login empresa demo (admin@demo) -- aplicado por deploy-demo.sh ---
+DEMO_ADMIN_PASSWORD='${DEMO_ADMIN_PASSWORD}'
+DEMO_ADMIN_PASSWORD_HASH='${DEMO_ADMIN_PASSWORD_HASH}'
 
-# --- Alertas (no se puede generar -- pegar a mano) ---
+# --- Alertas (no se puede generar -- pegar a mano). Este archivo se hace
+# --- "source" como script bash, asi que envolve el valor en comillas
+# --- simples si lo completas a mano (para que un $ en la URL no se
+# --- interprete como variable).
 # Slack -> workspace -> Incoming Webhooks -> crear/copiar URL.
-SLACK_WEBHOOK_URL=
+SLACK_WEBHOOK_URL=''
 EOF
 
 chmod 600 "$OUT_FILE"
@@ -138,19 +135,16 @@ cat <<EOF
 
 Listo: ${OUT_FILE} generado (permisos 600, excluido de git).
 
-Resumen de que hacer con cada valor:
-  - GF_SECURITY_ADMIN_USER / GF_SECURITY_ADMIN_PASSWORD:
-      copialos a monitoring/.env junto con SLACK_WEBHOOK_URL, y
-      "docker compose restart grafana".
-  - JWT_SECRET / INTERNAL_ADMIN_TOKEN / DIRECTORY_DB_PASSWORD:
-      hoy estan hardcodeados en stack/webapp/docker-stack.yml y
-      scale-out.sh. Pedime si queres que los cablee a variables de
-      entorno (requiere coordinar el redeploy si el stack ya esta
-      corriendo).
-  - SUPERADMIN_PASSWORD_HASH / DEMO_ADMIN_PASSWORD_HASH:
-      van en directory_schema.sql / seed_demo.sql en vez de los hashes
-      actuales, ANTES del primer deploy (./deploy-webapp.sh /
-      ./deploy-demo.sh). En una base ya sembrada, hace falta un UPDATE
-      manual sobre la tabla users.
-  - SLACK_WEBHOOK_URL: completalo a mano.
+  - GF_SECURITY_ADMIN_USER / GF_SECURITY_ADMIN_PASSWORD: copialos a
+    monitoring/.env junto con SLACK_WEBHOOK_URL (completalo a mano), y
+    "docker compose restart grafana".
+  - JWT_SECRET / INTERNAL_ADMIN_TOKEN / DIRECTORY_DB_PASSWORD /
+    SUPERADMIN_PASSWORD_HASH / DEMO_ADMIN_PASSWORD_HASH: se aplican solos
+    al correr ./deploy-webapp.sh, ./deploy-demo.sh y ./scale-out.sh.
+
+Orden sugerido:
+  ./generate-secrets.sh
+  docker compose up -d && ./init-swarm.sh
+  ./deploy-webapp.sh
+  ./deploy-demo.sh   # opcional
 EOF
