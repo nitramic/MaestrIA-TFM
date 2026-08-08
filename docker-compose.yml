@@ -214,7 +214,10 @@ services:
     network_mode: host
     restart: unless-stopped
     environment:
-      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN:?falta CLOUDFLARE_TUNNEL_TOKEN en secrets.env}
+      # Sin ":?" -- deploy-tunnel.sh ya valida que este seteado antes de
+      # levantar el profile "tunnel"; usar ":?" aca rompia CUALQUIER
+      # comando de docker compose (incluido "down") si no estaba exportada.
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN:-}
     command: ["tunnel", "--no-autoupdate", "run"]
 
   # Optional: visualize the swarm state in a browser once it's initialized.
