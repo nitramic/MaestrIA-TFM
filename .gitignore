@@ -8,3 +8,8 @@ monitoring/grafana/provisioning/alerting/contactpoints.yaml
 # de Swarm para el lb); no tiene sentido versionarlo, es especifico de
 # cada swarm desplegado.
 stack/webapp/lb/.lb_config_version
+
+# Copia local de recovery de todos los archivos de arriba (ver
+# secrets/restore.sh) -- nunca debe ir al repo, es la razon de ser de la
+# carpeta.
+secrets/
