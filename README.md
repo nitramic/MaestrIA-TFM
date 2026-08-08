@@ -192,6 +192,32 @@ docker compose exec swarm-manager docker service ls --filter name=pg-
 docker compose exec swarm-manager docker service rm pg-miapp
 ```
 
+## 5. Publicar con Cloudflare Tunnel
+
+Expone la webapp (`localhost:8081`) en un dominio propio (ej.
+`fireguard.nitramic.com`) via un túnel saliente de `cloudflared` — no hace
+falta abrir ningún puerto entrante en el firewall de la VM.
+
+1. En el dashboard de Cloudflare Zero Trust: `Networks` → `Tunnels` →
+   `Create a tunnel`, conector `Cloudflared`. Copiá el **token** del paso
+   "Install and run connector" (no corras el comando que muestra ahí).
+2. En la misma pantalla, `Public Hostname`: tu subdominio, tipo `HTTP`, URL
+   `localhost:8081`.
+3. Pegá el token en `CLOUDFLARE_TUNNEL_TOKEN` en `secrets.env`.
+4. Levantalo:
+
+   ```bash
+   ./deploy-tunnel.sh
+   ```
+
+Corre `cloudflared` como container en la capa host (`docker-compose.yml`,
+profile `tunnel`, `network_mode: host`), con reinicio automático. Bajarlo
+sin tocar el resto del stack:
+
+```bash
+docker compose --profile tunnel down cloudflared
+```
+
 ## Notas
 
 - Cada nodo es un demonio Docker independiente (`docker:dind`), aislado del

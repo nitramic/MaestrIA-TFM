@@ -137,6 +137,12 @@ SMTP_PORT='587'
 SMTP_USER=''
 SMTP_PASSWORD=''
 SMTP_FROM='FireGuard <no-reply@fireguard.local>'
+
+# --- Tunel de Cloudflare (opcional -- si queda vacio, deploy-tunnel.sh
+# --- falla con un mensaje claro; el resto del stack no lo necesita).
+# --- Zero Trust -> Networks -> Tunnels -> crear con conector "Cloudflared",
+# --- copiar el token (no correr el comando que muestra el dashboard).
+CLOUDFLARE_TUNNEL_TOKEN=''
 EOF
 
 chmod 600 "$OUT_FILE"

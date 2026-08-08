@@ -201,6 +201,22 @@ services:
     depends_on:
       - prometheus-host
 
+  # Publica la webapp (localhost:8081, capa host) hacia afuera via un
+  # tunel saliente de Cloudflare -- no requiere abrir ningun puerto entrante
+  # en el firewall de la VM. Token del tunel: Zero Trust -> Networks ->
+  # Tunnels -> crear uno con conector "Cloudflared", copiar el token (no
+  # correr el comando que muestra el dashboard) y pegarlo en
+  # CLOUDFLARE_TUNNEL_TOKEN en secrets.env. Levantar con ./deploy-tunnel.sh.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    profiles: ["tunnel"]
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN:?falta CLOUDFLARE_TUNNEL_TOKEN en secrets.env}
+    command: ["tunnel", "--no-autoupdate", "run"]
+
   # Optional: visualize the swarm state in a browser once it's initialized.
   # Start with: docker compose --profile viz up -d visualizer
   visualizer:

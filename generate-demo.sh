@@ -101,6 +101,9 @@ SMTP_PORT='587'
 SMTP_USER=''
 SMTP_PASSWORD=''
 SMTP_FROM='FireGuard <no-reply@fireguard.local>'
+
+# --- Tunel de Cloudflare (opcional -- pegar a mano, ver deploy-tunnel.sh) ---
+CLOUDFLARE_TUNNEL_TOKEN=''
 EOF
 
 chmod 600 "$OUT_FILE"
