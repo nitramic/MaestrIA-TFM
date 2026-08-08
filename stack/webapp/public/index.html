@@ -100,6 +100,58 @@
     </div>
   </div>
 
+  <!-- ===================== NOTIFICATIONS MODAL ===================== -->
+  <div id="modal-notifications" class="modal-overlay hidden">
+    <div class="modal card">
+      <h2 class="modal-title" data-i18n="notif.title">Notificaciones</h2>
+      <div class="notif-list">
+        <div class="notif-item">
+          <span class="notif-icon notif-icon-amber">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41L12 22l-9-9 8.59-8.59A2 2 0 0113 4h7v7a2 2 0 01-.41 1.41z"/><circle cx="16.5" cy="7.5" r="1.25" fill="currentColor" stroke="none"/></svg>
+          </span>
+          <div>
+            <div class="notif-item-title" data-i18n="notif.renewalTitle">Descuento por renovación anual</div>
+            <div class="notif-item-body" data-i18n="notif.renewalBody">Aprovechá el descuento por renovar tu plan anual antes de que termine el mes.</div>
+          </div>
+        </div>
+        <div class="notif-item">
+          <span class="notif-icon notif-icon-blue">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 21V7l7-4 7 4v14"/><path d="M3 21h18"/><path d="M9 9h.01M9 13h.01M14 9h.01M14 13h.01"/><path d="M9 21v-4h6v4"/></svg>
+          </span>
+          <div>
+            <div class="notif-item-title" data-i18n="notif.referralTitle">Sumá nuevas empresas</div>
+            <div class="notif-item-body" data-i18n="notif.referralBody">Traé nuevas empresas a FireGuard y obtené descuentos en tu cuenta.</div>
+          </div>
+        </div>
+        <div class="notif-item">
+          <span class="notif-icon notif-icon-red">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          </span>
+          <div>
+            <div class="notif-item-title" data-i18n="notif.expiryTitle">Tus licencias vencen pronto</div>
+            <div class="notif-item-body" data-i18n="notif.expiryBody">Tus licencias expiran en 90 días. Renová a tiempo para evitar interrupciones.</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="notifications-close-btn" class="btn btn-primary btn-block" data-i18n="notif.close">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== INSPECT LOCATION FILTER MODAL ===================== -->
+  <div id="modal-inspect-location" class="modal-overlay hidden">
+    <div class="modal card">
+      <h2 class="modal-title" data-i18n="inspect.filterByLocation">Filtrar por ubicación</h2>
+      <p class="hint" data-i18n="inspect.filterByLocationHint">Ubicaciones con extintores pendientes de inspección.</p>
+      <div id="inspect-location-list" class="location-list"></div>
+      <div id="inspect-location-empty" class="hint hidden" data-i18n="inspect.noLocations">No hay ubicaciones con extintores pendientes.</div>
+      <div class="modal-actions">
+        <button type="button" id="inspect-location-cancel-btn" class="btn btn-outline btn-block" data-i18n="detail.cancel">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===================== DASHBOARD VIEW ===================== -->
   <section id="view-dashboard" class="view hidden">
     <header class="topbar">
@@ -113,16 +165,16 @@
           <option value="en">EN</option>
           <option value="it">IT</option>
         </select>
-        <button type="button" id="app-theme-toggle-btn" class="corner-icon-btn" aria-label="Toggle theme" title="Toggle theme">
-          <svg id="app-theme-icon-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-          <svg id="app-theme-icon-moon" class="hidden" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg>
+        <button type="button" id="app-theme-toggle-btn" class="icon-btn" aria-label="Toggle theme" title="Toggle theme">
+          <svg id="app-theme-icon-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+          <svg id="app-theme-icon-moon" class="hidden" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg>
         </button>
         <button id="search-toggle" class="icon-btn" aria-label="Search">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
         </button>
-        <button class="icon-btn" aria-label="Notifications">
+        <button id="notifications-btn" class="icon-btn" aria-label="Notifications">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
-          <span class="dot-badge"></span>
+          <span id="notifications-dot" class="dot-badge"></span>
         </button>
         <button id="logout-btn" class="icon-btn" aria-label="Sign out" title="Sign out">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
@@ -143,9 +195,9 @@
         <div class="stat-label"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg> <span data-i18n="status.ok">OK</span></div>
         <div id="stat-ok" class="stat-value">0</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-label"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg> <span data-i18n="status.overdue">Overdue</span></div>
-        <div id="stat-overdue" class="stat-value">0</div>
+      <div class="stat-card stat-card-warn">
+        <div class="stat-label"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> <span data-i18n="status.dueSoon">Due Soon</span></div>
+        <div id="stat-due-soon" class="stat-value">0</div>
       </div>
     </div>
 
@@ -195,6 +247,11 @@
       <div>
         <div class="eyebrow" data-i18n="brand.eyebrow">FireGuard</div>
         <h1 class="page-title" data-i18n="inspect.title">Inspect</h1>
+      </div>
+      <div class="topbar-actions">
+        <button type="button" id="inspect-location-filter-btn" class="icon-btn" aria-label="Filter by location" data-i18n-title="inspect.filterByLocation" title="Filter by location">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4h18l-7 8.5V19l-4 2v-8.5L3 4z"/></svg>
+        </button>
       </div>
     </header>
     <div id="inspect-filter-banner" class="banner banner-info hidden">
@@ -281,9 +338,54 @@
       <div id="settings-admin-card" class="card settings-card hidden">
         <h2 class="report-card-title" data-i18n="settings.users">Company users</h2>
         <div id="settings-users-list" class="settings-users-list"></div>
+        <div id="settings-users-alert" class="alert alert-error hidden"></div>
+        <div id="settings-users-hint" class="hint settings-users-hint hidden" data-i18n="settings.users.selectOnlyOne">Seleccioná solo 1 usuario.</div>
+        <div class="settings-users-toolbar">
+          <button type="button" id="settings-users-create-btn" class="btn btn-secondary" data-i18n="settings.users.create">Crear usuario</button>
+          <button type="button" id="settings-users-delete-btn" class="btn btn-outline" disabled data-i18n="settings.users.deleteSelected">Eliminar</button>
+          <button type="button" id="settings-users-reset-btn" class="btn btn-outline" disabled data-i18n="settings.users.resetPassword">Restablecer contraseña</button>
+        </div>
       </div>
     </div>
   </section>
+
+  <!-- ===================== CREATE USER MODAL ===================== -->
+  <div id="modal-create-user" class="modal-overlay hidden">
+    <div class="modal card">
+      <h2 class="modal-title" data-i18n="settings.users.createTitle">Crear usuario</h2>
+      <label class="field-label" for="create-user-email" data-i18n="forgot.email">Email</label>
+      <input id="create-user-email" class="input" type="text" autocomplete="off" />
+      <label class="field-label" for="create-user-fullname" data-i18n="settings.users.fullName">Nombre completo</label>
+      <input id="create-user-fullname" class="input" type="text" autocomplete="off" />
+      <label class="field-label" for="create-user-role" data-i18n="settings.users.role">Rol</label>
+      <select id="create-user-role" class="input select">
+        <option value="inspector" data-i18n="settings.users.roleInspector">Inspector</option>
+        <option value="admin" data-i18n="settings.users.roleAdmin">Administrador</option>
+      </select>
+      <label class="field-label" for="create-user-password" data-i18n="settings.users.password">Contraseña</label>
+      <input id="create-user-password" class="input" type="text" autocomplete="off" data-i18n-placeholder="admin.adminPasswordPlaceholder" placeholder="Leave blank to auto-generate" />
+      <p class="hint" data-i18n="admin.adminPasswordHint">(opcional, se genera automáticamente si se deja vacía)</p>
+      <div id="create-user-alert" class="alert alert-error hidden"></div>
+      <div class="modal-actions">
+        <button type="button" id="create-user-cancel-btn" class="btn btn-outline" data-i18n="admin.cancel">Cancelar</button>
+        <button type="button" id="create-user-submit-btn" class="btn btn-primary" data-i18n="admin.create">Crear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== USER CREDENTIALS MODAL ===================== -->
+  <div id="modal-user-credentials" class="modal-overlay hidden">
+    <div class="modal card">
+      <h2 class="modal-title" id="user-creds-title" data-i18n="settings.users.passwordUpdatedAlert">Contraseña actualizada</h2>
+      <p class="hint" data-i18n="admin.credsHint">Guardá estas credenciales ahora — la contraseña no se volverá a mostrar.</p>
+      <div class="creds-box">
+        <div class="creds-row"><span class="creds-label" data-i18n="admin.user">Usuario</span><span id="user-creds-email" class="creds-value"></span></div>
+        <div class="creds-row"><span class="creds-label" data-i18n="admin.password">Contraseña</span><span id="user-creds-password" class="creds-value"></span></div>
+      </div>
+      <button type="button" id="user-creds-copy-btn" class="btn btn-secondary btn-block" data-i18n="settings.users.copyPassword">Copiar contraseña</button>
+      <button type="button" id="user-creds-done-btn" class="btn btn-primary btn-block" data-i18n="admin.done">Listo</button>
+    </div>
+  </div>
 
   <nav id="bottom-nav" class="bottom-nav hidden">
     <div class="nav-item" data-view="dashboard"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10l9-7 9 7"/><path d="M5 9v11h14V9"/></svg><span data-i18n="nav.home">Home</span></div>

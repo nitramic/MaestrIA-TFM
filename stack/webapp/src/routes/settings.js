@@ -1,7 +1,15 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { getCompanyPool } = require('../db');
 const { requireAuth, requireCompanyAdmin } = require('../auth');
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+$/;
+const ROLES = new Set(['admin', 'inspector']);
+
+function generatePassword() {
+  return crypto.randomBytes(9).toString('base64url');
+}
 
 const router = express.Router();
 
@@ -93,13 +101,61 @@ router.get('/users', requireAuth, requireCompanyAdmin, async (req, res) => {
   }
 });
 
+router.post('/users', requireAuth, requireCompanyAdmin, async (req, res) => {
+  const pool = await poolForRequest(req, res);
+  if (!pool) return;
+  const { email, fullName, role, password } = req.body || {};
+
+  if (!email || typeof email !== 'string' || !EMAIL_RE.test(email.trim())) {
+    return res.status(400).json({ error: 'Ingresá un email válido.' });
+  }
+  const finalRole = ROLES.has(role) ? role : 'inspector';
+  if (password !== undefined && password !== '' && (typeof password !== 'string' || password.length < 5)) {
+    return res.status(400).json({ error: 'La contraseña debe tener al menos 5 caracteres.' });
+  }
+  const finalPassword = password || generatePassword();
+
+  try {
+    const hash = await bcrypt.hash(finalPassword, 10);
+    const { rows } = await pool.query(
+      `INSERT INTO users (email, password_hash, full_name, role)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, email, full_name, role, locked, created_at`,
+      [email.trim().toLowerCase(), hash, fullName || null, finalRole]
+    );
+    const u = rows[0];
+    res.status(201).json({
+      id: u.id, email: u.email, fullName: u.full_name, role: u.role, locked: u.locked, createdAt: u.created_at,
+      password: finalPassword,
+    });
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ error: 'Ya existe un usuario con ese email.' });
+    res.status(503).json({ error: 'No se pudo contactar la base de datos.' });
+  }
+});
+
+router.delete('/users/:id', requireAuth, requireCompanyAdmin, async (req, res) => {
+  const pool = await poolForRequest(req, res);
+  if (!pool) return;
+  if (String(req.params.id) === String(req.session.userId)) {
+    return res.status(400).json({ error: 'No podés eliminar tu propio usuario.' });
+  }
+  try {
+    const { rows } = await pool.query('DELETE FROM users WHERE id = $1 RETURNING id', [req.params.id]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
+    res.json({ success: true });
+  } catch (err) {
+    if (err.code === '23503') {
+      return res.status(409).json({ error: 'No se puede eliminar: el usuario tiene historial de inspecciones asociado.' });
+    }
+    res.status(503).json({ error: 'No se pudo contactar la base de datos.' });
+  }
+});
+
 router.post('/users/:id/reset-password', requireAuth, requireCompanyAdmin, async (req, res) => {
   const pool = await poolForRequest(req, res);
   if (!pool) return;
-  const { newPassword } = req.body || {};
-  if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 5) {
-    return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 5 caracteres.' });
-  }
+  const newPassword = generatePassword();
   try {
     const hash = await bcrypt.hash(newPassword, 10);
     const { rows } = await pool.query(
@@ -107,7 +163,7 @@ router.post('/users/:id/reset-password', requireAuth, requireCompanyAdmin, async
       [hash, req.params.id]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
-    res.json({ success: true });
+    res.json({ email: rows[0].email, password: newPassword });
   } catch (err) {
     res.status(503).json({ error: 'No se pudo contactar la base de datos.' });
   }

@@ -32,6 +32,7 @@
     charts: {},
     settingsBound: false,
     reportsTypesLoaded: false,
+    selectedUserIds: new Set(),
   };
 
   function show(view) {
@@ -210,6 +211,15 @@
     bottomNav.classList.add('hidden');
   });
 
+  const notificationsModal = document.getElementById('modal-notifications');
+  document.getElementById('notifications-btn').addEventListener('click', () => {
+    notificationsModal.classList.remove('hidden');
+    document.getElementById('notifications-dot').classList.add('hidden');
+  });
+  document.getElementById('notifications-close-btn').addEventListener('click', () => {
+    notificationsModal.classList.add('hidden');
+  });
+
   // ---------------- Shared card rendering ----------------
   function dateLocale() {
     return { es: 'es-ES', it: 'it-IT', en: 'en-US' }[window.FireGuardI18n.currentLang] || 'en-US';
@@ -305,7 +315,7 @@
   function renderSummary() {
     document.getElementById('stat-total').textContent = state.summary.total;
     document.getElementById('stat-ok').textContent = state.summary.ok;
-    document.getElementById('stat-overdue').textContent = state.summary.overdue;
+    document.getElementById('stat-due-soon').textContent = state.summary.dueSoon;
 
     const banner = document.getElementById('overdue-banner');
     if (state.summary.overdue > 0) {
@@ -398,6 +408,58 @@
   document.getElementById('inspect-clear-filter').addEventListener('click', () => {
     state.inspectFilter = null;
     loadInspect().catch(() => {});
+  });
+
+  const inspectLocationModal = document.getElementById('modal-inspect-location');
+
+  function renderInspectLocationList(sites) {
+    const list = document.getElementById('inspect-location-list');
+    const empty = document.getElementById('inspect-location-empty');
+    const affected = sites.filter((s) => s.needsIntervention > 0);
+
+    list.innerHTML = '';
+    empty.classList.toggle('hidden', affected.length > 0);
+
+    const activeSiteId = state.inspectFilter && state.inspectFilter.siteId;
+
+    const allBtn = document.createElement('button');
+    allBtn.type = 'button';
+    allBtn.className = 'location-item' + (!activeSiteId ? ' location-item-active' : '');
+    allBtn.innerHTML = `<span>${t('inspect.allLocations')}</span>`;
+    allBtn.addEventListener('click', () => {
+      state.inspectFilter = null;
+      inspectLocationModal.classList.add('hidden');
+      loadInspect().catch(() => {});
+    });
+    list.appendChild(allBtn);
+
+    affected.forEach((site) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'location-item' + (activeSiteId === site.id ? ' location-item-active' : '');
+      btn.innerHTML = `<span>${site.name}</span><span class="location-item-badge">${site.needsIntervention}</span>`;
+      btn.addEventListener('click', () => {
+        state.inspectFilter = { siteId: site.id, siteName: site.name, statuses: ['due_soon', 'overdue'] };
+        inspectLocationModal.classList.add('hidden');
+        loadInspect().catch(() => {});
+      });
+      list.appendChild(btn);
+    });
+  }
+
+  document.getElementById('inspect-location-filter-btn').addEventListener('click', async () => {
+    inspectLocationModal.classList.remove('hidden');
+    try {
+      const data = await api('/sites');
+      state.sites = data.sites;
+      renderInspectLocationList(state.sites);
+    } catch (e) {
+      renderInspectLocationList([]);
+    }
+  });
+
+  document.getElementById('inspect-location-cancel-btn').addEventListener('click', () => {
+    inspectLocationModal.classList.add('hidden');
   });
 
   async function loadInspect() {
@@ -681,25 +743,47 @@
         alertBox.classList.remove('hidden');
       }
     });
+
+    bindSettingsUsersOnce();
+  }
+
+  function updateUsersToolbarState() {
+    const n = state.selectedUserIds.size;
+    document.getElementById('settings-users-delete-btn').disabled = n === 0;
+    document.getElementById('settings-users-reset-btn').disabled = n !== 1;
+    document.getElementById('settings-users-hint').classList.toggle('hidden', n <= 1);
   }
 
   function renderUsersList(users) {
+    state.selectedUserIds.clear();
+    updateUsersToolbarState();
+
     const container = document.getElementById('settings-users-list');
     container.innerHTML = '';
     users.forEach((u) => {
       const row = document.createElement('div');
       row.className = 'user-row';
       row.innerHTML = `
+        <label class="user-row-check">
+          <input type="checkbox" data-id="${u.id}" />
+        </label>
         <div class="user-row-info">
           <div class="user-row-email">${u.email}</div>
           <div class="user-row-meta">${u.fullName || ''} · ${u.role}${u.locked ? ` · <span class="user-locked">${t('settings.users.locked')}</span>` : ''}</div>
         </div>
         <div class="user-row-actions">
-          <button class="link-btn" data-action="reset" data-id="${u.id}">${t('settings.users.resetPassword')}</button>
           <button class="link-btn" data-action="${u.locked ? 'unlock' : 'lock'}" data-id="${u.id}">${u.locked ? t('settings.users.unlock') : t('settings.users.lock')}</button>
         </div>
       `;
       container.appendChild(row);
+    });
+
+    container.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+      cb.addEventListener('change', () => {
+        if (cb.checked) state.selectedUserIds.add(cb.dataset.id);
+        else state.selectedUserIds.delete(cb.dataset.id);
+        updateUsersToolbarState();
+      });
     });
 
     container.querySelectorAll('button[data-action]').forEach((btn) => {
@@ -707,15 +791,8 @@
         const id = btn.dataset.id;
         const action = btn.dataset.action;
         try {
-          if (action === 'reset') {
-            const newPassword = prompt(t('settings.users.newPasswordPrompt'));
-            if (!newPassword) return;
-            await api(`/settings/users/${id}/reset-password`, { method: 'POST', body: JSON.stringify({ newPassword }) });
-            alert(t('settings.users.passwordUpdatedAlert'));
-          } else {
-            await api(`/settings/users/${id}/${action}`, { method: 'POST' });
-            await loadSettingsUsers();
-          }
+          await api(`/settings/users/${id}/${action}`, { method: 'POST' });
+          await loadSettingsUsers();
         } catch (err) {
           alert((err.data && err.data.error) || t('errors.requestFailed'));
         }
@@ -726,6 +803,111 @@
   async function loadSettingsUsers() {
     const data = await api('/settings/users');
     renderUsersList(data.users);
+  }
+
+  function openUserCredentialsModal(email, password, title) {
+    document.getElementById('user-creds-title').textContent = title;
+    document.getElementById('user-creds-email').textContent = email;
+    document.getElementById('user-creds-password').textContent = password;
+    const copyBtn = document.getElementById('user-creds-copy-btn');
+    copyBtn.textContent = t('settings.users.copyPassword');
+    document.getElementById('modal-user-credentials').classList.remove('hidden');
+  }
+
+  function bindSettingsUsersOnce() {
+    const createModal = document.getElementById('modal-create-user');
+    const createAlert = document.getElementById('create-user-alert');
+    const usersAlert = document.getElementById('settings-users-alert');
+
+    document.getElementById('settings-users-create-btn').addEventListener('click', () => {
+      document.getElementById('create-user-email').value = '';
+      document.getElementById('create-user-fullname').value = '';
+      document.getElementById('create-user-role').value = 'inspector';
+      document.getElementById('create-user-password').value = '';
+      createAlert.classList.add('hidden');
+      createModal.classList.remove('hidden');
+    });
+
+    document.getElementById('create-user-cancel-btn').addEventListener('click', () => {
+      createModal.classList.add('hidden');
+    });
+
+    document.getElementById('create-user-submit-btn').addEventListener('click', async () => {
+      const email = document.getElementById('create-user-email').value.trim();
+      const fullName = document.getElementById('create-user-fullname').value.trim();
+      const role = document.getElementById('create-user-role').value;
+      const password = document.getElementById('create-user-password').value.trim();
+      createAlert.classList.add('hidden');
+
+      const btn = document.getElementById('create-user-submit-btn');
+      btn.disabled = true;
+      try {
+        const payload = { email, fullName, role };
+        if (password) payload.password = password;
+        const created = await api('/settings/users', { method: 'POST', body: JSON.stringify(payload) });
+        createModal.classList.add('hidden');
+        await loadSettingsUsers();
+        openUserCredentialsModal(created.email, created.password, t('settings.users.userCreated'));
+      } catch (err) {
+        createAlert.textContent = (err.data && err.data.error) || t('settings.users.errCreate');
+        createAlert.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById('settings-users-delete-btn').addEventListener('click', async () => {
+      const ids = Array.from(state.selectedUserIds);
+      if (ids.length === 0) return;
+      if (!confirm(t('settings.users.confirmDelete'))) return;
+      usersAlert.classList.add('hidden');
+      const results = await Promise.allSettled(ids.map((id) => api(`/settings/users/${id}`, { method: 'DELETE' })));
+      await loadSettingsUsers();
+      const firstFailure = results.find((r) => r.status === 'rejected');
+      if (firstFailure) {
+        usersAlert.textContent = (firstFailure.reason.data && firstFailure.reason.data.error) || t('settings.users.errDelete');
+        usersAlert.classList.remove('hidden');
+      }
+    });
+
+    document.getElementById('settings-users-reset-btn').addEventListener('click', async () => {
+      const ids = Array.from(state.selectedUserIds);
+      if (ids.length !== 1) return;
+      usersAlert.classList.add('hidden');
+      try {
+        const result = await api(`/settings/users/${ids[0]}/reset-password`, { method: 'POST' });
+        await loadSettingsUsers();
+        openUserCredentialsModal(result.email, result.password, t('settings.users.passwordUpdatedAlert'));
+      } catch (err) {
+        usersAlert.textContent = (err.data && err.data.error) || t('settings.users.errReset');
+        usersAlert.classList.remove('hidden');
+      }
+    });
+
+    document.getElementById('user-creds-copy-btn').addEventListener('click', async () => {
+      const password = document.getElementById('user-creds-password').textContent;
+      const copyBtn = document.getElementById('user-creds-copy-btn');
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(password);
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = password;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+        }
+        copyBtn.textContent = t('settings.users.copied');
+        setTimeout(() => { copyBtn.textContent = t('settings.users.copyPassword'); }, 1500);
+      } catch (e) { /* clipboard unavailable */ }
+    });
+
+    document.getElementById('user-creds-done-btn').addEventListener('click', () => {
+      document.getElementById('modal-user-credentials').classList.add('hidden');
+    });
   }
 
   async function loadSettings() {
