@@ -9,6 +9,22 @@ propia, los une en un clúster Swarm, y despliega ahí la webapp **FireGuard**
 - Docker Engine con soporte para contenedores `privileged` (necesario para DinD).
 - Docker Compose v2 (`docker compose`).
 
+En una VM Linux recien instalada (Ubuntu/Debian) sin Docker todavia:
+
+```bash
+./install-docker.sh
+```
+
+Instala Docker Engine + Compose v2 desde el repositorio oficial (idempotente:
+si ya esta instalado, no hace nada) y agrega el usuario actual al grupo
+`docker`. Para otras distros, instalar Docker manualmente
+(https://docs.docker.com/engine/install/) antes de seguir.
+
+Todo el resto del stack (scripts, `docker-compose.yml`, `docker-stack.yml`)
+no asume nada de la maquina donde corre -- IPs, hostnames y URLs salen todos
+de variables de entorno con defaults sensatos (`localhost:8081`), asi que
+cualquier VM Linux con Docker sirve como entorno nuevo.
+
 ## 0. Generar secretos
 
 Antes de desplegar nada, generar `secrets.env` (fuera de git, no se commitea):
@@ -21,6 +37,18 @@ Genera valores random para `JWT_SECRET`, `INTERNAL_ADMIN_TOKEN`,
 `DIRECTORY_DB_PASSWORD`, el password de Grafana, y el password/hash del
 superadmin y de la empresa demo. `deploy-webapp.sh`, `deploy-demo.sh` y
 `scale-out.sh` lo leen automáticamente — sin este archivo, no despliegan.
+
+**Migrar un `secrets.env` ya probado a otra VM** (por ejemplo, uno con SMTP
+de Brevo ya verificado): al estar fuera de git, no viaja con `git clone` —
+copialo aparte:
+
+```bash
+scp secrets.env usuario@vm-nueva:/ruta/al/repo/secrets.env
+```
+
+`monitoring/.env` (con `SLACK_WEBHOOK_URL`) es opcional y tampoco viaja con
+git; copialo igual si lo tenés configurado, o dejalo afuera (Grafana arranca
+igual, sin ese contact point).
 
 ## 1. Levantar el swarm
 
