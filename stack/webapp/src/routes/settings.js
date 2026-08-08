@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const { getCompanyPool } = require('../db');
+const { getCompanyPool, directoryPool } = require('../db');
 const { requireAuth, requireCompanyAdmin } = require('../auth');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+$/;
@@ -114,6 +114,19 @@ router.post('/users', requireAuth, requireCompanyAdmin, async (req, res) => {
     return res.status(400).json({ error: 'La contraseña debe tener al menos 5 caracteres.' });
   }
   const finalPassword = password || generatePassword();
+
+  try {
+    const { rows: limitRows } = await directoryPool.query(
+      'SELECT license_count FROM companies WHERE slug = $1', [req.session.slug]
+    );
+    const licenseCount = limitRows[0] ? limitRows[0].license_count : 5;
+    const { rows: countRows } = await pool.query('SELECT count(*)::int AS n FROM users');
+    if (countRows[0].n >= licenseCount) {
+      return res.status(403).json({ error: `Se alcanzó el límite de ${licenseCount} usuario(s) para esta empresa.` });
+    }
+  } catch (err) {
+    return res.status(503).json({ error: 'No se pudo contactar la base de datos.' });
+  }
 
   try {
     const hash = await bcrypt.hash(finalPassword, 10);

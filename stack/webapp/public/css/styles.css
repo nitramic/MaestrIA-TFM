@@ -139,7 +139,7 @@ html, body {
   padding: 14px 18px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
 }
 .btn-block { width: 100%; }
-.btn-primary { background: var(--blue); color: #fff; margin-top: 20px; }
+.btn-primary { background: var(--blue); color: #fff; margin-top: 20px; border: 1px solid transparent; }
 .btn-primary:hover:not(:disabled) { background: var(--blue-dark); }
 .btn-secondary { background: var(--blue-tint); color: var(--blue-dark); margin-top: 4px; }
 .btn-outline { background: transparent; color: var(--gray-900); border: 1px solid var(--gray-200); flex: 1; }
@@ -170,7 +170,7 @@ html, body {
 .modal { width: 100%; max-width: 420px; }
 .modal-title { margin: 0 0 4px; font-size: 20px; }
 .modal-actions { display: flex; gap: 12px; margin-top: 20px; }
-.modal-actions .btn { flex: 1; }
+.modal-actions .btn { flex: 1; margin-top: 0; }
 
 .location-list { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; max-height: 50vh; overflow-y: auto; }
 .location-item {

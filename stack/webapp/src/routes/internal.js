@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs');
 const { Client } = require('pg');
 const { directoryPool } = require('../db');
 const { createCompanyPostgres, waitForPgReady, removeCompanyPostgres } = require('../docker');
+const { sendWelcomeEmail } = require('../mail');
 
 const router = express.Router();
 const DOCKER_SOCKET = process.env.DOCKER_SOCKET || '/var/run/docker.sock';
@@ -34,7 +35,7 @@ router.use((req, res, next) => {
 });
 
 router.post('/companies', async (req, res) => {
-  const { slug, displayName, adminPassword: providedPassword } = req.body || {};
+  const { slug, displayName, adminPassword: providedPassword, contactEmail, licenseCount: rawLicenseCount } = req.body || {};
   if (!slug || typeof slug !== 'string' || !/^[a-z0-9][a-z0-9_-]*$/.test(slug)) {
     return res.status(400).json({ error: 'Slug inválido.' });
   }
@@ -43,13 +44,15 @@ router.post('/companies', async (req, res) => {
   const adminPassword = providedPassword && String(providedPassword).length >= 5 ? String(providedPassword) : genSecret(9);
   const adminEmail = `admin@${slug}`;
   const name = displayName || slug;
+  const licenseCount = Number.isInteger(rawLicenseCount) && rawLicenseCount > 0 ? rawLicenseCount : 5;
+  const verifyToken = genSecret(24);
 
   try {
     await directoryPool.query(
-      `INSERT INTO companies (slug, display_name, db_host, db_port, db_name, db_user, db_password, active, status, status_message)
-       VALUES ($1, $2, $3, 5432, $4, 'postgres', $5, true, 'provisioning', NULL)
-       ON CONFLICT (slug) DO UPDATE SET status = 'provisioning', status_message = NULL`,
-      [slug, name, `pg-${slug}`, slug, dbPassword]
+      `INSERT INTO companies (slug, display_name, db_host, db_port, db_name, db_user, db_password, active, status, status_message, contact_email, license_count)
+       VALUES ($1, $2, $3, 5432, $4, 'postgres', $5, true, 'provisioning', NULL, $6, $7)
+       ON CONFLICT (slug) DO UPDATE SET status = 'provisioning', status_message = NULL, contact_email = EXCLUDED.contact_email, license_count = EXCLUDED.license_count`,
+      [slug, name, `pg-${slug}`, slug, dbPassword, contactEmail || null, licenseCount]
     );
 
     await createCompanyPostgres(slug, dbPassword);
@@ -61,9 +64,10 @@ router.post('/companies', async (req, res) => {
       await client.query(COMPANY_SCHEMA_SQL);
       const hash = await bcrypt.hash(adminPassword, 10);
       await client.query(
-        `INSERT INTO users (email, password_hash, full_name, role) VALUES ($1, $2, $3, 'admin')
-         ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash`,
-        [adminEmail, hash, `Admin ${name}`]
+        `INSERT INTO users (email, password_hash, full_name, role, email_verify_token, email_verify_expires_at)
+         VALUES ($1, $2, $3, 'admin', $4, now() + interval '7 days')
+         ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, email_verify_token = EXCLUDED.email_verify_token, email_verify_expires_at = EXCLUDED.email_verify_expires_at`,
+        [adminEmail, hash, `Admin ${name}`, verifyToken]
       );
     } finally {
       await client.end();
@@ -71,7 +75,17 @@ router.post('/companies', async (req, res) => {
 
     await directoryPool.query("UPDATE companies SET status = 'ready', status_message = NULL WHERE slug = $1", [slug]);
 
-    res.status(201).json({ slug, displayName: name, adminEmail, adminPassword, status: 'ready' });
+    let emailResult = { sent: false, reason: 'Sin email de contacto.' };
+    if (contactEmail) {
+      emailResult = await sendWelcomeEmail({
+        to: contactEmail, companyName: name, email: adminEmail, password: adminPassword, slug, verifyToken,
+      });
+    }
+
+    res.status(201).json({
+      slug, displayName: name, adminEmail, adminPassword, status: 'ready', licenseCount,
+      welcomeEmail: emailResult,
+    });
   } catch (err) {
     await directoryPool
       .query('UPDATE companies SET status = $2, status_message = $3 WHERE slug = $1', [slug, 'error', String((err && err.message) || err)])

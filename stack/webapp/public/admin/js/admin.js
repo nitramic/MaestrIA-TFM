@@ -266,6 +266,8 @@
     document.getElementById('create-slug').value = '';
     document.getElementById('create-name').value = '';
     document.getElementById('create-password').value = '';
+    document.getElementById('create-email').value = '';
+    document.getElementById('create-licenses').value = '5';
     createAlert.classList.add('hidden');
     createModal.classList.remove('hidden');
   });
@@ -276,6 +278,8 @@
     const slug = document.getElementById('create-slug').value.trim().toLowerCase();
     const displayName = document.getElementById('create-name').value.trim();
     const adminPassword = document.getElementById('create-password').value.trim();
+    const contactEmail = document.getElementById('create-email').value.trim();
+    const licenseCount = parseInt(document.getElementById('create-licenses').value, 10);
     createAlert.classList.add('hidden');
 
     if (!/^[a-z0-9][a-z0-9_-]*$/.test(slug)) {
@@ -288,17 +292,30 @@
       createAlert.classList.remove('hidden');
       return;
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
+      createAlert.textContent = t('admin.contactEmailRequired');
+      createAlert.classList.remove('hidden');
+      return;
+    }
+    if (!Number.isInteger(licenseCount) || licenseCount < 1) {
+      createAlert.textContent = t('admin.licenseCountRequired');
+      createAlert.classList.remove('hidden');
+      return;
+    }
 
     const btn = document.getElementById('create-submit-btn');
     btn.disabled = true;
     btn.textContent = t('admin.creating');
     try {
-      const payload = { slug, displayName };
+      const payload = { slug, displayName, contactEmail, licenseCount };
       if (adminPassword) payload.adminPassword = adminPassword;
       const created = await api('/companies', { method: 'POST', body: JSON.stringify(payload) });
       createModal.classList.add('hidden');
       await loadCompanies();
-      openCredentialsModal(created.adminEmail, created.adminPassword, t('admin.companyCreated'));
+      const title = created.welcomeEmail && created.welcomeEmail.sent
+        ? t('admin.companyCreatedEmailSent')
+        : t('admin.companyCreated');
+      openCredentialsModal(created.adminEmail, created.adminPassword, title);
     } catch (err) {
       createAlert.textContent = (err.data && err.data.error) || t('admin.errCompanyCreate');
       createAlert.classList.remove('hidden');

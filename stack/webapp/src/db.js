@@ -23,7 +23,7 @@ const companyConnectionPools = new Map();
 
 async function getCompanyBySlug(slug) {
   const { rows } = await directoryPool.query(
-    'SELECT slug, display_name, db_host, db_port, db_name, db_user, db_password, active, status FROM companies WHERE slug = $1',
+    'SELECT slug, display_name, db_host, db_port, db_name, db_user, db_password, active, status, license_count FROM companies WHERE slug = $1',
     [slug]
   );
   return rows[0] || null;
@@ -33,9 +33,21 @@ async function getCompanyPool(slug) {
   const company = await getCompanyBySlug(slug);
   if (!company || !company.active || company.status !== 'ready') return null;
 
-  let pool = companyConnectionPools.get(slug);
-  if (!pool) {
-    pool = new Pool({
+  const cacheKey = `${company.db_host}:${company.db_port}/${company.db_name}:${company.db_user}:${company.db_password}`;
+  const cached = companyConnectionPools.get(slug);
+
+  // A company can be torn down and re-provisioned (new pg-<slug> container,
+  // new random db_password) while app1/app2 keep running -- without this
+  // check they'd keep reusing a pool built from the old credentials and
+  // every query would fail auth against the new database.
+  if (cached && cached.cacheKey !== cacheKey) {
+    cached.pool.end().catch(() => {});
+    companyConnectionPools.delete(slug);
+  }
+
+  let entry = companyConnectionPools.get(slug);
+  if (!entry) {
+    const pool = new Pool({
       host: company.db_host,
       port: company.db_port,
       database: company.db_name,
@@ -44,10 +56,11 @@ async function getCompanyPool(slug) {
       max: 5,
       connectionTimeoutMillis: 3000,
     });
-    companyConnectionPools.set(slug, pool);
+    entry = { pool, cacheKey };
+    companyConnectionPools.set(slug, entry);
   }
 
-  return { pool, company };
+  return { pool: entry.pool, company };
 }
 
 async function checkDirectoryHealth() {

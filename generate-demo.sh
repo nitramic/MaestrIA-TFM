@@ -93,6 +93,14 @@ DEMO_ADMIN_PASSWORD_HASH='${DEMO_ADMIN_PASSWORD_HASH}'
 
 # --- Alertas (no se puede generar -- pegar a mano) ---
 SLACK_WEBHOOK_URL=''
+
+# --- Email de bienvenida (opcional -- vacio = no se envia el mail) ---
+APP_BASE_URL='http://localhost:8081'
+SMTP_HOST=''
+SMTP_PORT='587'
+SMTP_USER=''
+SMTP_PASSWORD=''
+SMTP_FROM='FireGuard <no-reply@fireguard.local>'
 EOF
 
 chmod 600 "$OUT_FILE"

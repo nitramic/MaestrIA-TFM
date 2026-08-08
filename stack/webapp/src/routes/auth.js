@@ -1,9 +1,13 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const { getCompanyPool } = require('../db');
-const { slugFromEmail, issueSession, clearSession, requireAuth } = require('../auth');
+const { slugFromEmail, issueSession, clearSession, requireAuth, COOKIE_NAME } = require('../auth');
 const { loginAttemptsTotal } = require('../metrics');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
 const router = express.Router();
 
@@ -107,9 +111,28 @@ router.post('/login', loginLimiter, async (req, res) => {
       return res.status(401).json(INVALID);
     }
 
+    // Concurrent-connection cap: only unexpired session rows count, so a
+    // stale/abandoned login (past its 8h TTL) never blocks a real one.
+    const { rows: activeRows } = await pool.query(
+      'SELECT count(*)::int AS n FROM sessions WHERE expires_at > now()'
+    );
+    if (activeRows[0].n >= company.license_count) {
+      loginAttemptsTotal.inc({ result: 'license_limit', company: slug });
+      return res.status(403).json({
+        error: `Se alcanzó el límite de ${company.license_count} usuario(s) conectado(s) simultáneamente para esta empresa.`,
+      });
+    }
+
     await pool.query(
       'UPDATE users SET failed_attempts = 0, locked_until = NULL, last_login_at = now() WHERE id = $1',
       [user.id]
+    );
+
+    const jti = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000);
+    await pool.query(
+      'INSERT INTO sessions (user_id, jti, expires_at) VALUES ($1, $2, $3)',
+      [user.id, jti, expiresAt]
     );
 
     issueSession(res, {
@@ -118,6 +141,7 @@ router.post('/login', loginLimiter, async (req, res) => {
       slug,
       role: user.role,
       companyName: company.display_name,
+      jti,
     });
 
     loginAttemptsTotal.inc({ result: 'success', company: slug });
@@ -166,13 +190,57 @@ router.post('/forgot-password', loginLimiter, async (req, res) => {
   res.json({ success: true });
 });
 
-router.post('/logout', (req, res) => {
+router.post('/logout', async (req, res) => {
+  const token = req.cookies && req.cookies[COOKIE_NAME];
   clearSession(res);
+  if (token) {
+    try {
+      const payload = jwt.verify(token, JWT_SECRET);
+      const entry = await getCompanyPool(payload.slug);
+      if (entry && payload.jti) {
+        await entry.pool.query('DELETE FROM sessions WHERE jti = $1', [payload.jti]);
+      }
+    } catch (err) {
+      // token already invalid/expired -- nothing to clean up
+    }
+  }
   res.json({ success: true });
 });
 
 router.get('/me', requireAuth, (req, res) => {
   res.json({ session: req.session });
+});
+
+// Public: reached from the link in the welcome email (see src/mail.js).
+// Not behind requireAuth -- the token itself is the credential.
+router.get('/verify-email', async (req, res) => {
+  const { slug, token } = req.query || {};
+  const fail = (message) => res.status(400).send(`<h1>Enlace inválido</h1><p>${message}</p>`);
+
+  if (!slug || !token || typeof slug !== 'string' || typeof token !== 'string') {
+    return fail('Falta el token de verificación.');
+  }
+
+  let entry;
+  try {
+    entry = await getCompanyPool(slug);
+  } catch (err) {
+    return res.status(503).send('<h1>Error</h1><p>No se pudo contactar la base de datos.</p>');
+  }
+  if (!entry) return fail('Empresa no encontrada.');
+
+  try {
+    const { rows } = await entry.pool.query(
+      `UPDATE users SET email_verified = true, email_verify_token = NULL, email_verify_expires_at = NULL
+       WHERE email_verify_token = $1 AND email_verify_expires_at > now()
+       RETURNING email`,
+      [token]
+    );
+    if (rows.length === 0) return fail('El enlace expiró o ya fue utilizado.');
+    res.send(`<h1>Correo verificado</h1><p>La cuenta ${rows[0].email} quedó confirmada. Ya podés iniciar sesión.</p>`);
+  } catch (err) {
+    res.status(503).send('<h1>Error</h1><p>No se pudo contactar la base de datos.</p>');
+  }
 });
 
 module.exports = router;

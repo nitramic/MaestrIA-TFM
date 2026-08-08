@@ -127,6 +127,16 @@ DEMO_ADMIN_PASSWORD_HASH='${DEMO_ADMIN_PASSWORD_HASH}'
 # --- interprete como variable).
 # Slack -> workspace -> Incoming Webhooks -> crear/copiar URL.
 SLACK_WEBHOOK_URL=''
+
+# --- Email de bienvenida (opcional -- si SMTP_HOST queda vacio, el alta de
+# --- empresa funciona igual pero no se envia el mail). Completar a mano con
+# --- las credenciales SMTP del proveedor que uses.
+APP_BASE_URL='http://localhost:8081'
+SMTP_HOST=''
+SMTP_PORT='587'
+SMTP_USER=''
+SMTP_PASSWORD=''
+SMTP_FROM='FireGuard <no-reply@fireguard.local>'
 EOF
 
 chmod 600 "$OUT_FILE"

@@ -24,6 +24,24 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
 ALTER TABLE users DROP COLUMN IF EXISTS language;
 ALTER TABLE users DROP COLUMN IF EXISTS theme;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_requested_at TIMESTAMPTZ;
+-- Email verification, set up when the account is created and cleared once
+-- the user clicks the link from the welcome email (see src/mail.js).
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verify_token VARCHAR(128);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verify_expires_at TIMESTAMPTZ;
+
+-- One row per active login, so we can cap concurrent connected users at
+-- companies.license_count (checked/inserted in src/routes/auth.js). Expired
+-- rows are simply ignored by count queries (filtered on expires_at), no
+-- cleanup job needed.
+CREATE TABLE IF NOT EXISTS sessions (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  jti VARCHAR(64) UNIQUE NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions (expires_at);
 
 -- A site is a physical location (building/warehouse), shown as one bubble on the Units map.
 CREATE TABLE IF NOT EXISTS sites (

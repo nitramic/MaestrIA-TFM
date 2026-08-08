@@ -134,13 +134,22 @@ router.get('/companies', requireAdminAuth, async (req, res) => {
   }
 });
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 router.post('/companies', requireAdminAuth, async (req, res) => {
-  const { slug, displayName, adminPassword } = req.body || {};
+  const { slug, displayName, adminPassword, contactEmail, licenseCount } = req.body || {};
   if (!slug || typeof slug !== 'string' || !/^[a-z0-9][a-z0-9_-]*$/.test(slug)) {
     return res.status(400).json({ error: 'Slug inválido (minúsculas, dígitos, - o _).' });
   }
   if (!displayName || typeof displayName !== 'string') {
     return res.status(400).json({ error: 'Falta el nombre visible de la empresa.' });
+  }
+  if (!contactEmail || typeof contactEmail !== 'string' || !EMAIL_RE.test(contactEmail.trim())) {
+    return res.status(400).json({ error: 'Ingresá un email de contacto válido.' });
+  }
+  const parsedLicenseCount = Number(licenseCount);
+  if (!Number.isInteger(parsedLicenseCount) || parsedLicenseCount < 1) {
+    return res.status(400).json({ error: 'La cantidad de licencias debe ser un número entero mayor a 0.' });
   }
 
   try {
@@ -154,7 +163,7 @@ router.post('/companies', requireAdminAuth, async (req, res) => {
 
   const result = await callInternal('/companies', {
     method: 'POST',
-    body: JSON.stringify({ slug, displayName, adminPassword }),
+    body: JSON.stringify({ slug, displayName, adminPassword, contactEmail: contactEmail.trim(), licenseCount: parsedLicenseCount }),
   });
 
   if (!result.ok) {

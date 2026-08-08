@@ -22,6 +22,11 @@ CREATE TABLE IF NOT EXISTS companies (
 -- Safe to re-run on an existing table (older deployments).
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS status VARCHAR(32) NOT NULL DEFAULT 'ready';
 ALTER TABLE companies ADD COLUMN IF NOT EXISTS status_message TEXT;
+-- Contact email for the company's welcome email; license_count caps both
+-- concurrent logged-in users and the number of user rows an admin can
+-- create for that company (enforced in src/routes/auth.js and settings.js).
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS contact_email VARCHAR(255);
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS license_count INTEGER NOT NULL DEFAULT 5;
 
 -- Superadmin accounts for the /admin control panel. Not tied to any company.
 CREATE TABLE IF NOT EXISTS admin_users (
