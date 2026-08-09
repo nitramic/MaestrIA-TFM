@@ -3,9 +3,9 @@
 # de datos, imagenes del registry, todo) y apaga la maquina por completo
 # (power off). No pide confirmacion: pensado para correr desatendido.
 #
-# NO hace falta agregarlo a cron: start-demo.sh lo programa solo, 4 horas
+# NO hace falta agregarlo a cron: start-demo.sh lo programa solo, 3h50m
 # despues de cada arranque (via systemd-run). Este script tambien se puede
-# correr a mano en cualquier momento si hace falta frenar antes de esas 4h:
+# correr a mano en cualquier momento si hace falta frenar antes de esas 3h50m:
 #   ./stop-demo.sh
 #
 # IMPORTANTE: confirma en el proveedor cloud que la instancia este

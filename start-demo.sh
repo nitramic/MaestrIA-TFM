@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Levanta todo el stack tras un arranque de la VM (misma data, mismos
-# contenedores -- no recrea nada) y programa el apagado automatico 4 horas
+# contenedores -- no recrea nada) y programa el apagado automatico 3h50m
 # despues via un timer transitorio de systemd. Idempotente: si ya esta
 # todo arriba, no rompe nada.
 #
 # Pensado para @reboot en cron. El apagado (stop-demo.sh) NO va en cron:
-# lo programa este script cada vez que corre, siempre +4h desde ESE
+# lo programa este script cada vez que corre, siempre +3h50m desde ESE
 # arranque puntual (el encendido puede pasar en cualquier momento via la
 # API del proveedor cloud, asi que un horario fijo de cron para el stop
 # no serviria).
@@ -18,7 +18,7 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STOP_SCRIPT="${REPO_DIR}/stop-demo.sh"
-AUTOSTOP_HOURS="4h"
+AUTOSTOP_HOURS="3h50m"
 
 log() { echo "[$(date -u +%FT%TZ)] $*"; }
 

@@ -222,7 +222,7 @@ docker compose --profile tunnel down cloudflared
 
 Pensado para una VM que se prende/apaga por costo desde afuera (API del
 proveedor cloud): `start-demo.sh` levanta todo sin recrear nada (mismos
-datos) y programa el apagado exactamente 4 horas después de ESE arranque
+datos) y programa el apagado exactamente 3h50m después de ESE arranque
 puntual; `stop-demo.sh` frena el stack y apaga la máquina (power off).
 
 Instalar en el **crontab de root** (evita que `sudo` falle sin terminal en
@@ -239,10 +239,10 @@ Agregar:
 ```
 
 No hace falta ninguna entrada de cron para `stop-demo.sh` — `start-demo.sh`
-programa su propio apagado (`systemd-run --on-active=4h`) cada vez que
-corre, así que siempre son 4h reales desde el arranque real, sea cuando
+programa su propio apagado (`systemd-run --on-active=3h50m`) cada vez que
+corre, así que siempre son 3h50m reales desde el arranque real, sea cuando
 sea. `stop-demo.sh` también se puede correr a mano si hace falta frenar
-antes de esas 4h.
+antes de esas 3h50m.
 
 **Importante:** confirmá en el proveedor cloud que la instancia esté
 configurada para "stop" (no "terminate"/"delete") cuando el SO se apaga
