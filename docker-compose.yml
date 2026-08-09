@@ -11,6 +11,7 @@ services:
       dind-net:
         aliases:
           - swarm-manager
+        ipv4_address: 172.19.0.10
     volumes:
       - manager-data:/var/lib/docker
       - ./stack:/stack
@@ -42,6 +43,7 @@ services:
       dind-net:
         aliases:
           - swarm-worker1
+        ipv4_address: 172.19.0.11
     volumes:
       - worker1-data:/var/lib/docker
     healthcheck:
@@ -65,6 +67,7 @@ services:
       dind-net:
         aliases:
           - swarm-worker2
+        ipv4_address: 172.19.0.12
     volumes:
       - worker2-data:/var/lib/docker
     healthcheck:
@@ -94,6 +97,7 @@ services:
       dind-net:
         aliases:
           - swarm-worker3
+        ipv4_address: 172.19.0.13
     volumes:
       - worker3-data:/var/lib/docker
     healthcheck:
@@ -236,8 +240,18 @@ services:
       - swarm-manager
 
 networks:
+  # IPs fijas para los 4 nodos DinD (.10-.13): el swarm interno guarda la
+  # IP del manager (--advertise-addr) y de cada worker para el gossip/raft
+  # entre ellos. En una bridge network sin ipam explicito, Docker puede
+  # reasignar otras IPs a estos contenedores en un simple `stop`/`start`
+  # (segun el orden en que arrancan), lo que rompe la membresia del swarm
+  # (los workers quedan "Down", reintentando conectar a una IP vieja) y
+  # tumba la app hasta reunirlos a mano. Con IP fija esto no puede pasar.
   dind-net:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.19.0.0/16
 
 volumes:
   manager-data:
