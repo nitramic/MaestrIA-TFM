@@ -17,14 +17,13 @@ COMPOSE="docker compose"
 
 exec_manager() { $COMPOSE exec -T swarm-manager "$@"; }
 
-# El entrypoint de Grafana corre como uid 472 (usuario "grafana" de la
-# imagen) y necesita escribir contactpoints.yaml en este directorio
-# montado desde el host. Un "git clone" fresco lo deja en 775 (sin
-# permiso de escritura para "otros"), lo que hace que el contenedor
-# muera al arrancar ("Permission denied") -- se reproduce siempre en
-# una VM/clon nueva, aunque no se note en un checkout local viejo si
-# ese permiso ya se corrigio a mano alguna vez.
-echo "==> Ajustando permisos de monitoring/grafana/provisioning/alerting (uid 472 del contenedor Grafana)..."
+# Redundante con el chmod que ya hace install-docker.sh (que corre antes
+# del primer "docker compose up -d", el que realmente crea el contenedor
+# de Grafana por primera vez). Se repite aca por las dudas -- si este
+# script se corre en una maquina que ya tenia Docker instalado y por eso
+# se salteo install-docker.sh, o si alguien restauro los permisos por
+# error -- pero ya no deberia hacer falta en el flujo normal.
+echo "==> Verificando permisos de monitoring/grafana/provisioning/alerting (uid 472 del contenedor Grafana)..."
 chmod -R o+w monitoring/grafana/provisioning/alerting
 
 echo "==> Levantando monitoreo de capa host (docker-stats-exporter, node-exporter, Prometheus, Grafana)..."

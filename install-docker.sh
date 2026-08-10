@@ -14,6 +14,20 @@ if [ "$(id -u)" -ne 0 ]; then
   SUDO="sudo"
 fi
 
+# El entrypoint de Grafana corre como uid 472 (usuario "grafana" de la
+# imagen) y necesita escribir contactpoints.yaml en este directorio,
+# montado desde el host. Un "git clone" fresco lo deja sin permiso de
+# escritura para "otros", lo que hace que el contenedor muera al
+# arrancar ("Permission denied"). Grafana no tiene profile restringido
+# en docker-compose.yml, asi que el primer "docker compose up -d" (sea
+# el de este mismo README o el de cualquier otro script) ya lo levanta
+# -- por eso este ajuste va aca, antes de cualquier otra cosa, en vez de
+# en deploy-monitoring.sh (que corre demasiado tarde para la primera vez).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -d "${SCRIPT_DIR}/monitoring/grafana/provisioning/alerting" ]; then
+  chmod -R o+w "${SCRIPT_DIR}/monitoring/grafana/provisioning/alerting"
+fi
+
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
   echo "Docker Engine + Compose v2 ya estan instalados:"
   docker --version
