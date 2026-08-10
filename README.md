@@ -218,35 +218,31 @@ sin tocar el resto del stack:
 docker compose --profile tunnel down cloudflared
 ```
 
-## 6. Encendido/apagado automático (VM de demo remota)
+## 6. Encendido/apagado (VM de demo remota)
 
-Pensado para una VM que se prende/apaga por costo desde afuera (API del
-proveedor cloud): `start-demo.sh` levanta todo sin recrear nada (mismos
-datos) y programa el apagado exactamente 3h50m después de ESE arranque
-puntual; `stop-demo.sh` frena el stack y apaga la máquina (power off).
-
-Instalar en el **crontab de root** (evita que `sudo` falle sin terminal en
-un cron sin sesión interactiva):
+`start-demo.sh` levanta todo sin recrear nada (mismos datos, mismos
+contenedores) — útil como `@reboot` en cron si la VM llega a reiniciarse y
+querés que el stack vuelva a estar arriba solo:
 
 ```bash
 sudo crontab -e
 ```
 
-Agregar:
-
 ```
 @reboot /ruta/al/repo/start-demo.sh >> /var/log/fireguard-start.log 2>&1
 ```
 
-No hace falta ninguna entrada de cron para `stop-demo.sh` — `start-demo.sh`
-programa su propio apagado (`systemd-run --on-active=3h50m`) cada vez que
-corre, así que siempre son 3h50m reales desde el arranque real, sea cuando
-sea. `stop-demo.sh` también se puede correr a mano si hace falta frenar
-antes de esas 3h50m.
+`stop-demo.sh` frena el stack (conserva los datos) y apaga la máquina
+(power off). No se programa solo — se corre a mano, o lo invoca quien sea
+que administre el ciclo de vida de la VM (por ejemplo, un script/notebook
+externo que la crea con un tiempo de vida fijo vía la API del proveedor
+cloud). Ninguno de los dos scripts programa un apagado automático por su
+cuenta.
 
-**Importante:** confirmá en el proveedor cloud que la instancia esté
-configurada para "stop" (no "terminate"/"delete") cuando el SO se apaga
-desde adentro — si no, se pierde el disco entero.
+**Importante:** si el apagado se dispara con un `poweroff` desde adentro
+de la VM (en vez de vía la API del proveedor cloud), confirmá que la
+instancia esté configurada para "stop" (no "terminate"/"delete") cuando el
+SO se apaga desde adentro — si no, se pierde el disco entero.
 
 ## Notas
 

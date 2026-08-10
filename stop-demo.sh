@@ -3,9 +3,10 @@
 # de datos, imagenes del registry, todo) y apaga la maquina por completo
 # (power off). No pide confirmacion: pensado para correr desatendido.
 #
-# NO hace falta agregarlo a cron: start-demo.sh lo programa solo, 3h50m
-# despues de cada arranque (via systemd-run). Este script tambien se puede
-# correr a mano en cualquier momento si hace falta frenar antes de esas 3h50m:
+# No se programa solo desde ningun otro script del repo: correlo a mano
+# cuando haga falta frenar la VM, o invocalo desde donde sea que se
+# gestione el apagado automatico (por ejemplo, un script/notebook externo
+# que administra el ciclo de vida de la VM vía la API del proveedor cloud):
 #   ./stop-demo.sh
 #
 # IMPORTANTE: confirma en el proveedor cloud que la instancia este

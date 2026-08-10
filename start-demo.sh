@@ -1,24 +1,21 @@
 #!/usr/bin/env bash
 # Levanta todo el stack tras un arranque de la VM (misma data, mismos
-# contenedores -- no recrea nada) y programa el apagado automatico 3h50m
-# despues via un timer transitorio de systemd. Idempotente: si ya esta
-# todo arriba, no rompe nada.
+# contenedores -- no recrea nada). Idempotente: si ya esta todo arriba,
+# no rompe nada.
 #
-# Pensado para @reboot en cron. El apagado (stop-demo.sh) NO va en cron:
-# lo programa este script cada vez que corre, siempre +3h50m desde ESE
-# arranque puntual (el encendido puede pasar en cualquier momento via la
-# API del proveedor cloud, asi que un horario fijo de cron para el stop
-# no serviria).
+# El apagado automatico de la VM (si aplica) es responsabilidad de quien
+# la aprovisiona (por ejemplo, un script/notebook externo que crea la VM
+# con un tiempo de vida fijo vía la API del proveedor cloud) -- este
+# script ya NO programa ningun apagado propio. stop-demo.sh sigue
+# disponible para frenar el stack y apagar la maquina a mano.
 #
-# Instalar en cron (recomendado: crontab de root, para no depender de
-# sudo sin password en un contexto sin terminal):
+# Util para @reboot en cron si la VM se reinicia y queres que el stack
+# vuelva a estar arriba solo:
 #   sudo crontab -e
 #   @reboot /ruta/al/repo/start-demo.sh >> /var/log/fireguard-start.log 2>&1
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-STOP_SCRIPT="${REPO_DIR}/stop-demo.sh"
-AUTOSTOP_HOURS="3h50m"
 
 log() { echo "[$(date -u +%FT%TZ)] $*"; }
 
@@ -45,17 +42,4 @@ echo
 log "Servicios:"
 docker compose ps
 
-log "==> Programando apagado automatico en ${AUTOSTOP_HOURS}..."
-UNIT="fireguard-autostop-$(date +%s)"
-if [ ! -x "${STOP_SCRIPT}" ]; then
-  log "ERROR: no encuentro ${STOP_SCRIPT} o no es ejecutable."
-  exit 1
-fi
-if [ "$(id -u)" -eq 0 ]; then
-  systemd-run --on-active="${AUTOSTOP_HOURS}" --unit="${UNIT}" "${STOP_SCRIPT}"
-else
-  sudo systemd-run --on-active="${AUTOSTOP_HOURS}" --unit="${UNIT}" "${STOP_SCRIPT}"
-fi
-
-log "Listo. La VM se apagara sola en ${AUTOSTOP_HOURS} (unidad systemd: ${UNIT})."
-log "Para cancelar ese apagado puntual: sudo systemctl stop ${UNIT}"
+log "Listo. El apagado de la VM (si corresponde) lo maneja quien la aprovisiono."
