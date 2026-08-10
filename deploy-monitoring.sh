@@ -14,6 +14,18 @@
 set -euo pipefail
 
 COMPOSE="docker compose"
+SECRETS_FILE="secrets.env"
+
+# secrets.env es opcional aca (a diferencia de deploy-webapp.sh/deploy-demo.sh):
+# GF_SECURITY_ADMIN_USER/PASSWORD tienen un default sensato en
+# docker-compose.yml (${..:-admin} / ${..:-DemoAdmin1234!}) si el archivo
+# no existe o no los define.
+if [ -f "${SECRETS_FILE}" ]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "${SECRETS_FILE}"
+  set +a
+fi
 
 exec_manager() { $COMPOSE exec -T swarm-manager "$@"; }
 
@@ -42,14 +54,14 @@ echo
 echo "Servicios del stack 'monitoring':"
 exec_manager docker stack services monitoring
 
-cat <<'EOF'
+cat <<EOF
 
 Listo.
 
   Grafana (host + swarm, dos datasources ya provisionados):
     http://localhost:3001
-    Usuario:  admin
-    Password: admin  (cambiar en produccion)
+    Usuario:  ${GF_SECURITY_ADMIN_USER:-admin}
+    Password: ${GF_SECURITY_ADMIN_PASSWORD:-DemoAdmin1234!}
 
   Prometheus capa host (contenedores del host real):
     docker compose exec prometheus-host wget -qO- http://localhost:9090

@@ -6,8 +6,14 @@
 # no existe). secrets.env tambien se puede copiar a mano a otro entorno.
 #
 # Que hace cada valor, y quien lo consume:
-#   - GF_SECURITY_ADMIN_USER/PASSWORD: copialos a monitoring/.env junto con
-#     SLACK_WEBHOOK_URL (docker-compose.yml ya lee ese archivo).
+#   - GF_SECURITY_ADMIN_USER/PASSWORD: los lee deploy-monitoring.sh (source
+#     secrets.env) y los pasa a "docker compose" para sustituir
+#     ${GF_SECURITY_ADMIN_USER:-admin}/${GF_SECURITY_ADMIN_PASSWORD:-...}
+#     en docker-compose.yml -- no van en monitoring/.env (ver comentario
+#     en docker-compose.yml sobre por que "environment:" no puede leer de
+#     ahi). Password fijo (no random) para tener un default conocido de
+#     entorno de demo/laboratorio; cambialo a mano en este archivo si
+#     hace falta uno distinto.
 #   - JWT_SECRET / INTERNAL_ADMIN_TOKEN / DIRECTORY_DB_PASSWORD: los leen
 #     deploy-webapp.sh y scale-out.sh (interpolados en
 #     stack/webapp/docker-stack.yml al correr `docker stack deploy`).
@@ -85,7 +91,7 @@ echo "==> Generando secretos..."
 JWT_SECRET=$(rand_hex 32)
 INTERNAL_ADMIN_TOKEN=$(rand_hex 24)
 DIRECTORY_DB_PASSWORD=$(rand_pass 24 20)
-GF_SECURITY_ADMIN_PASSWORD=$(rand_pass 16 14)
+GF_SECURITY_ADMIN_PASSWORD='DemoAdmin1234!'
 SUPERADMIN_PASSWORD=$(rand_pass 16 14)
 DEMO_ADMIN_PASSWORD=$(rand_pass 16 14)
 
@@ -102,8 +108,10 @@ cat > "$OUT_FILE" <<EOF
 # Generado por generate-secrets.sh el $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 # NO commitear este archivo (ya esta en .gitignore).
 
-# --- Grafana (docker-compose.yml lee monitoring/.env, no este archivo ---
-# --- directamente -- copia estas dos lineas ahi junto con SLACK_WEBHOOK_URL) ---
+# --- Grafana: los lee deploy-monitoring.sh (source de este archivo) y
+# --- los pasa a "docker compose" -- docker-compose.yml los sustituye
+# --- directamente, no van en monitoring/.env. Password fijo por
+# --- default (entorno de demo); cambialo aca si haces falta uno propio.
 GF_SECURITY_ADMIN_USER='admin'
 GF_SECURITY_ADMIN_PASSWORD='${GF_SECURITY_ADMIN_PASSWORD}'
 
@@ -151,9 +159,12 @@ cat <<EOF
 
 Listo: ${OUT_FILE} generado (permisos 600, excluido de git).
 
-  - GF_SECURITY_ADMIN_USER / GF_SECURITY_ADMIN_PASSWORD: copialos a
-    monitoring/.env junto con SLACK_WEBHOOK_URL (completalo a mano), y
-    "docker compose restart grafana".
+  - GF_SECURITY_ADMIN_USER / GF_SECURITY_ADMIN_PASSWORD: se aplican solos
+    al correr ./deploy-monitoring.sh (no hace falta copiarlos a mano a
+    ningun lado).
+  - SLACK_WEBHOOK_URL: completalo a mano en este archivo, y copialo
+    tambien a monitoring/.env (docker-compose.yml lee ese archivo aparte
+    para el contact point de alertas de Grafana).
   - JWT_SECRET / INTERNAL_ADMIN_TOKEN / DIRECTORY_DB_PASSWORD /
     SUPERADMIN_PASSWORD_HASH / DEMO_ADMIN_PASSWORD_HASH: se aplican solos
     al correr ./deploy-webapp.sh, ./deploy-demo.sh y ./scale-out.sh.
@@ -162,5 +173,6 @@ Orden sugerido:
   ./generate-secrets.sh
   docker compose up -d && ./init-swarm.sh
   ./deploy-webapp.sh
-  ./deploy-demo.sh   # opcional
+  ./deploy-demo.sh       # opcional
+  ./deploy-monitoring.sh # opcional
 EOF
