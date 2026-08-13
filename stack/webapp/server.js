@@ -59,7 +59,15 @@ app.use('/internal', internalRoutes);
 
 app.use('/vendor/leaflet', express.static(path.join(__dirname, 'node_modules', 'leaflet', 'dist')));
 app.use('/vendor/chartjs', express.static(path.join(__dirname, 'node_modules', 'chart.js', 'dist')));
-app.use(express.static(path.join(__dirname, 'public')));
+// redirect: false -- sin esto, una request a "/admin" (sin barra) dispara el
+// redirect automatico de express.static a "/admin/" ANTES de llegar al
+// catch-all de abajo, que ya maneja ese caso sirviendo el archivo
+// directamente. Ese redirect por si solo es inofensivo, pero si algo en el
+// camino (proxy, CDN) llega a normalizar "/admin/" de vuelta a "/admin" en
+// la siguiente request, se arma un loop infinito de 301. Sirviendo el
+// archivo directo en ambos casos, sin redirect, evita el problema de raiz
+// sin depender de que nada rio arriba preserve la barra final.
+app.use(express.static(path.join(__dirname, 'public'), { redirect: false }));
 
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api/') || req.path.startsWith('/internal/')) {
