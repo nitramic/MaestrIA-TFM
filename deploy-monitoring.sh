@@ -34,9 +34,11 @@ exec_manager() { $COMPOSE exec -T swarm-manager "$@"; }
 # de Grafana por primera vez). Se repite aca por las dudas -- si este
 # script se corre en una maquina que ya tenia Docker instalado y por eso
 # se salteo install-docker.sh, o si alguien restauro los permisos por
-# error -- pero ya no deberia hacer falta en el flujo normal.
+# error -- pero ya no deberia hacer falta en el flujo normal. El grupo
+# primario de la imagen es 0/root (no 472), por eso "g+w" y no "o+w"
+# (ver comentario en install-docker.sh).
 echo "==> Verificando permisos de monitoring/grafana/provisioning/alerting (uid 472 del contenedor Grafana)..."
-chmod -R o+w monitoring/grafana/provisioning/alerting
+chmod -R go+w monitoring/grafana/provisioning/alerting
 
 echo "==> Levantando monitoreo de capa host (docker-stats-exporter, node-exporter, Prometheus, Grafana)..."
 $COMPOSE up -d docker-stats-exporter node-exporter prometheus-host grafana

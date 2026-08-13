@@ -15,17 +15,22 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 # El entrypoint de Grafana corre como uid 472 (usuario "grafana" de la
-# imagen) y necesita escribir contactpoints.yaml en este directorio,
-# montado desde el host. Un "git clone" fresco lo deja sin permiso de
-# escritura para "otros", lo que hace que el contenedor muera al
-# arrancar ("Permission denied"). Grafana no tiene profile restringido
-# en docker-compose.yml, asi que el primer "docker compose up -d" (sea
-# el de este mismo README o el de cualquier otro script) ya lo levanta
-# -- por eso este ajuste va aca, antes de cualquier otra cosa, en vez de
-# en deploy-monitoring.sh (que corre demasiado tarde para la primera vez).
+# imagen), pero su GRUPO PRIMARIO es 0/root (ver /etc/passwd de la
+# imagen: "grafana:x:472:0:..."), no 472. Un "git clone" fresco deja
+# este directorio en root:root -- como el gid efectivo del proceso (0)
+# coincide con el grupo dueno del directorio, el kernel evalua por
+# GRUPO (r-x, sin escritura) y ni siquiera llega a mirar "otros", asi
+# que un simple "o+w" no alcanza (verificado: con go solo "o+w" el
+# contenedor sigue fallando con "Permission denied" al crear
+# contactpoints.yaml; con "g+w" funciona). Sin esto, el contenedor
+# muere al arrancar. Grafana no tiene profile restringido en
+# docker-compose.yml, asi que el primer "docker compose up -d" (sea el
+# de este mismo README o el de cualquier otro script) ya lo levanta --
+# por eso este ajuste va aca, antes de cualquier otra cosa, en vez de en
+# deploy-monitoring.sh (que corre demasiado tarde para la primera vez).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -d "${SCRIPT_DIR}/monitoring/grafana/provisioning/alerting" ]; then
-  chmod -R o+w "${SCRIPT_DIR}/monitoring/grafana/provisioning/alerting"
+  chmod -R go+w "${SCRIPT_DIR}/monitoring/grafana/provisioning/alerting"
 fi
 
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
