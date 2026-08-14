@@ -1,8 +1,8 @@
 -- Runs against the "directory" database (pg-directory service).
 -- Maps a company slug (the part of the login email after the @, before the
 -- first dot) to the Postgres connection details for that company's own
--- database, deployed separately (via deploy-postgres.sh / add-company.sh,
--- or provisioned on demand by the /admin panel).
+-- database, deployed separately (via deploy-postgres.sh, or provisioned on
+-- demand by the /admin panel).
 
 CREATE TABLE IF NOT EXISTS companies (
   id SERIAL PRIMARY KEY,

@@ -129,15 +129,21 @@ balanceador de punta a punta:
 ./test-scale-balancer.sh
 ```
 
+Ese script prueba reparto de carga con requests anónimos. Para generar
+tráfico autenticado real (logins válidos de la empresa demo) y que los
+paneles de login/uso del dashboard "FireGuard - App" en Grafana tengan
+datos para mostrar:
+
+```bash
+./test-app-logins.sh              # 20 ciclos de login/logout, 1 por segundo
+./test-app-logins.sh 50 0.5       # 50 ciclos, medio segundo de pausa
+```
+
 ## 3. Dar de alta empresas
 
 Cada empresa tiene su propia base Postgres, aislada de las demás, registrada
 en `pg-directory`. Las altas se hacen desde el panel `/admin` (botón "Nueva
-Empresa") o por línea de comandos:
-
-```bash
-./add-company.sh <slug> [nombre_visible] [admin_password]
-```
+Empresa").
 
 El login de cada empresa es `admin@<slug>` (y cualquier otro usuario que se
 cree luego desde el panel de la empresa, en Ajustes → Usuarios).
@@ -162,8 +168,8 @@ Desde el panel de administración también se puede:
 
 ## 4. Desplegar bases PostgreSQL individuales (puertos desde 5001)
 
-`deploy-postgres.sh` (usado internamente por `add-company.sh` / `deploy-demo.sh`,
-o directamente si hace falta una base suelta) crea, cada vez que se ejecuta,
+`deploy-postgres.sh` (usado internamente por `deploy-demo.sh`, o directamente
+si hace falta una base suelta) crea, cada vez que se ejecuta,
 un servicio Swarm independiente para una base de datos (`pg-<nombre_db>`),
 con su propio volumen y su propio puerto publicado. En vez del `5432` por
 defecto, el primer servicio usa el `5001`, el siguiente el `5002`, etc. (el

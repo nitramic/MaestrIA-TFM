@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Onboards the "demo" company: a real company (like any added via
-# add-company.sh) but pre-loaded with sample sites/extinguishers/users, and
+# Onboards the "demo" company: a real company (like any added via the
+# /admin panel) but pre-loaded with sample sites/extinguishers/users, and
 # pinned to always sort last in the admin panel's company list (which is
 # ordered by created_at DESC) via a fixed, old created_at.
 #
