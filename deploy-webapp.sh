@@ -13,7 +13,7 @@
 #    http://localhost:8081)
 #
 # Run after ./init-swarm.sh. Companies (and their per-company postgres
-# service) are onboarded afterwards via the /admin panel or add-company.sh.
+# service) are onboarded afterwards via the /admin panel.
 set -euo pipefail
 
 COMPOSE="docker compose"
@@ -118,6 +118,7 @@ $COMPOSE exec -T \
   -e SMTP_USER="${SMTP_USER:-}" \
   -e SMTP_PASSWORD="${SMTP_PASSWORD:-}" \
   -e SMTP_FROM="${SMTP_FROM:-FireGuard <no-reply@fireguard.local>}" \
+  -e SLACK_APP_EVENTS_WEBHOOK_URL="${SLACK_APP_EVENTS_WEBHOOK_URL:-}" \
   swarm-manager docker stack deploy -c /stack/webapp/docker-stack.yml fireguard
 
 echo
@@ -136,6 +137,6 @@ Panel de administracion (alta/baja/suspension de empresas):
   Usuario:  superadmin@fireguard.local
   Password: ${SUPERADMIN_PASSWORD:-(ver SUPERADMIN_PASSWORD en secrets.env)}
 
-Sin empresas dadas de alta todavia. Usa el panel de administracion o
-./add-company.sh para dar de alta la primera.
+Sin empresas dadas de alta todavia. Usa el panel de administracion para
+dar de alta la primera.
 EOF

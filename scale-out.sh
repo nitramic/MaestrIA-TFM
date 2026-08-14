@@ -82,6 +82,7 @@ exec_manager docker service create \
   --env DIRECTORY_DB_PASSWORD="${DIRECTORY_DB_PASSWORD}" \
   --env JWT_SECRET="${JWT_SECRET}" \
   --env INTERNAL_ADMIN_TOKEN="${INTERNAL_ADMIN_TOKEN}" \
+  --env SLACK_APP_EVENTS_WEBHOOK_URL="${SLACK_APP_EVENTS_WEBHOOK_URL:-}" \
   --restart-condition any \
   "${placement_args[@]}" \
   registry:5000/fireguard-webapp:latest >/dev/null

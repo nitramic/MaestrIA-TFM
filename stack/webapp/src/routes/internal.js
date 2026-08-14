@@ -7,6 +7,7 @@ const { Client } = require('pg');
 const { directoryPool } = require('../db');
 const { createCompanyPostgres, waitForPgReady, removeCompanyPostgres } = require('../docker');
 const { sendWelcomeEmail } = require('../mail');
+const { notifyAppEvent } = require('../slack');
 
 const router = express.Router();
 const DOCKER_SOCKET = process.env.DOCKER_SOCKET || '/var/run/docker.sock';
@@ -78,8 +79,8 @@ router.post('/companies', async (req, res) => {
 
     await directoryPool.query("UPDATE companies SET status = 'ready', status_message = NULL WHERE slug = $1", [slug]);
 
-    // Default true: add-company.sh (linea de comandos) no manda este campo
-    // y siempre espero el mail, como antes de este checkbox.
+    // Default true: si el caller no manda este campo (p.ej. una llamada
+    // directa a la API interna) se espera el mail, como antes de este checkbox.
     const wantsWelcomeEmail = shouldSendWelcomeEmail !== false;
     let emailResult = { sent: false, reason: 'Desactivado al crear la empresa.' };
     if (wantsWelcomeEmail) {
@@ -90,6 +91,8 @@ router.post('/companies', async (req, res) => {
           })
         : { sent: false, reason: 'Sin email de contacto.' };
     }
+
+    notifyAppEvent(`Empresa creada: ${name} (slug=${slug}).`, ':new:').catch(() => {});
 
     res.status(201).json({
       slug, displayName: name, adminEmail, adminPassword, status: 'ready', licenseCount,
@@ -108,6 +111,7 @@ router.delete('/companies/:slug', async (req, res) => {
   try {
     await removeCompanyPostgres(slug);
     await directoryPool.query('DELETE FROM companies WHERE slug = $1', [slug]);
+    notifyAppEvent(`Empresa eliminada: slug=${slug}.`, ':wastebasket:').catch(() => {});
     res.json({ success: true, slug });
   } catch (err) {
     res.status(500).json({ error: `No se pudo eliminar la empresa: ${(err && err.message) || err}` });

@@ -25,6 +25,9 @@ services:
       - SMTP_USER=${SMTP_USER:-}
       - SMTP_PASSWORD=${SMTP_PASSWORD:-}
       - SMTP_FROM=${SMTP_FROM:-FireGuard <no-reply@fireguard.local>}
+      # Avisos a Slack (#app-events): bloqueo de cuenta, reset de password.
+      # Alta/baja de empresa se notifican desde admin-worker (ver mas abajo).
+      - SLACK_APP_EVENTS_WEBHOOK_URL=${SLACK_APP_EVENTS_WEBHOOK_URL:-}
     networks:
       - fireguard-net
     deploy:
@@ -88,6 +91,8 @@ services:
       - SMTP_USER=${SMTP_USER:-}
       - SMTP_PASSWORD=${SMTP_PASSWORD:-}
       - SMTP_FROM=${SMTP_FROM:-FireGuard <no-reply@fireguard.local>}
+      # Avisos a Slack (#app-events): alta/baja de empresa (routes/internal.js).
+      - SLACK_APP_EVENTS_WEBHOOK_URL=${SLACK_APP_EVENTS_WEBHOOK_URL:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:

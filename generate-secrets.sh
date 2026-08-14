@@ -22,6 +22,11 @@
 #     antes de aplicarlos.
 #   - SLACK_WEBHOOK_URL no se puede generar: hay que pegarlo a mano
 #     (Slack -> Incoming Webhooks de tu workspace).
+#   - SLACK_APP_EVENTS_WEBHOOK_URL: idem, pero para avisos de eventos de la
+#     app (bloqueo de cuenta, reset de password, alta/baja de empresa) en
+#     lugar de alertas de metricas -- normalmente un webhook distinto,
+#     apuntando a otro canal (#app-events). Lo leen deploy-webapp.sh y
+#     scale-out.sh, igual que JWT_SECRET/INTERNAL_ADMIN_TOKEN.
 #
 # IMPORTANTE sobre --force en un entorno YA desplegado: regenerar
 # JWT_SECRET desloguea a todos los usuarios; regenerar DIRECTORY_DB_PASSWORD
@@ -135,6 +140,13 @@ DEMO_ADMIN_PASSWORD_HASH='${DEMO_ADMIN_PASSWORD_HASH}'
 # --- interprete como variable).
 # Slack -> workspace -> Incoming Webhooks -> crear/copiar URL.
 SLACK_WEBHOOK_URL=''
+
+# --- Avisos de eventos de la app (#app-events): bloqueo de cuenta, reset de
+# --- password, alta/baja de empresa (ver stack/webapp/src/slack.js). Webhook
+# --- de Slack distinto al de arriba (ese es para alertas de metricas de
+# --- Grafana) -- si queda vacio, la app sigue funcionando igual, solo no
+# --- avisa nada por Slack.
+SLACK_APP_EVENTS_WEBHOOK_URL=''
 
 # --- Email de bienvenida (opcional -- si SMTP_HOST queda vacio, el alta de
 # --- empresa funciona igual pero no se envia el mail). Completar a mano con

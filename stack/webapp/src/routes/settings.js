@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const { getCompanyPool, directoryPool } = require('../db');
 const { requireAuth, requireCompanyAdmin } = require('../auth');
 const { sendPasswordChangedEmail, sendAccountUnlockedEmail } = require('../mail');
+const { notifyAppEvent } = require('../slack');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+$/;
 const ROLES = new Set(['admin', 'inspector']);
@@ -192,6 +193,10 @@ router.post('/users/:id/reset-password', requireAuth, requireCompanyAdmin, async
         to: user.notification_email, companyName: req.session.companyName, email: user.email, password: newPassword,
       }).catch(() => {});
     }
+    notifyAppEvent(
+      `Password reseteada: ${user.email} (empresa ${req.session.companyName}).`,
+      ':key:'
+    ).catch(() => {});
     res.json({ email: user.email, password: newPassword });
   } catch (err) {
     res.status(503).json({ error: 'No se pudo contactar la base de datos.' });
@@ -204,6 +209,10 @@ router.post('/users/:id/lock', requireAuth, requireCompanyAdmin, async (req, res
   try {
     const { rows } = await pool.query('UPDATE users SET locked = true WHERE id = $1 RETURNING id, email, locked', [req.params.id]);
     if (rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
+    notifyAppEvent(
+      `Cuenta bloqueada manualmente: ${rows[0].email} (empresa ${req.session.companyName}).`,
+      ':lock:'
+    ).catch(() => {});
     res.json(rows[0]);
   } catch (err) {
     res.status(503).json({ error: 'No se pudo contactar la base de datos.' });

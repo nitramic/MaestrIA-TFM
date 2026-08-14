@@ -5,6 +5,7 @@ const rateLimit = require('express-rate-limit');
 const { directoryPool, getCompanyPool } = require('../db');
 const { issueAdminSession, clearAdminSession, requireAdminAuth } = require('../adminAuth');
 const { sendPasswordChangedEmail } = require('../mail');
+const { notifyAppEvent } = require('../slack');
 
 const router = express.Router();
 
@@ -293,6 +294,10 @@ router.post('/companies/:slug/users/:userId/reset-password', requireAdminAuth, a
           })
         : { sent: false, reason: 'El usuario no tiene un email de notificaciones cargado.' };
     }
+    notifyAppEvent(
+      `Password reseteada (por superadmin): ${user.email} (empresa ${entry.company.display_name}).`,
+      ':key:'
+    ).catch(() => {});
     res.json({ email: user.email, password: newPassword, notificationEmail });
   } catch (err) {
     res.status(503).json({ error: 'No se pudo contactar la base de datos.' });
@@ -330,6 +335,10 @@ router.post('/companies/:slug/admin-password', requireAdminAuth, async (req, res
           })
         : { sent: false, reason: 'El usuario no tiene un email de notificaciones cargado.' };
     }
+    notifyAppEvent(
+      `Password reseteada (admin de empresa, por superadmin): ${adminEmail} (empresa ${entry.company.display_name}).`,
+      ':key:'
+    ).catch(() => {});
     res.json({ email: adminEmail, password: newPassword, notificationEmail });
   } catch (err) {
     res.status(503).json({ error: 'No se pudo contactar la base de datos.' });
