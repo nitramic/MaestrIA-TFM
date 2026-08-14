@@ -15,6 +15,16 @@ services:
       - DIRECTORY_DB_PASSWORD=${DIRECTORY_DB_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
       - INTERNAL_ADMIN_TOKEN=${INTERNAL_ADMIN_TOKEN}
+      # Mismos valores que admin-worker: auth.js/settings.js/routes/admin.js
+      # corren en app1/app2 (no en admin-worker) y necesitan mandar mail
+      # directo (lockout, reset de password, notificaciones), no solo el
+      # de bienvenida (que si pasa por admin-worker via callInternal).
+      - APP_BASE_URL=${APP_BASE_URL:-http://localhost:8081}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_FROM=${SMTP_FROM:-FireGuard <no-reply@fireguard.local>}
     networks:
       - fireguard-net
     deploy:

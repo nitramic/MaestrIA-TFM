@@ -365,6 +365,9 @@
       <label class="field-label" for="create-user-password" data-i18n="settings.users.password">Contraseña</label>
       <input id="create-user-password" class="input" type="text" autocomplete="off" data-i18n-placeholder="admin.adminPasswordPlaceholder" placeholder="Leave blank to auto-generate" />
       <p class="hint" data-i18n="admin.adminPasswordHint">(opcional, se genera automáticamente si se deja vacía)</p>
+      <label class="field-label" for="create-user-notification-email" data-i18n="settings.users.notificationEmail">Email de notificaciones</label>
+      <input id="create-user-notification-email" class="input" type="email" autocomplete="off" data-i18n-placeholder="settings.users.notificationEmailPlaceholder" placeholder="persona@empresa.com" />
+      <p class="hint" data-i18n="settings.users.notificationEmailHint">Casilla real donde llegan los avisos de cambio de contraseña y bloqueo/desbloqueo. El email de arriba es solo el usuario de login, no una casilla real.</p>
       <div id="create-user-alert" class="alert alert-error hidden"></div>
       <div class="modal-actions">
         <button type="button" id="create-user-cancel-btn" class="btn btn-outline" data-i18n="admin.cancel">Cancelar</button>

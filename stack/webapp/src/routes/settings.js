@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { getCompanyPool, directoryPool } = require('../db');
 const { requireAuth, requireCompanyAdmin } = require('../auth');
+const { sendPasswordChangedEmail, sendAccountUnlockedEmail } = require('../mail');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+$/;
 const ROLES = new Set(['admin', 'inspector']);
@@ -93,9 +94,14 @@ router.get('/users', requireAuth, requireCompanyAdmin, async (req, res) => {
   if (!pool) return;
   try {
     const { rows } = await pool.query(
-      'SELECT id, email, full_name, role, locked, created_at FROM users ORDER BY created_at'
+      'SELECT id, email, full_name, role, locked, created_at, notification_email, email_notifications_enabled FROM users ORDER BY created_at'
     );
-    res.json({ users: rows.map((u) => ({ id: u.id, email: u.email, fullName: u.full_name, role: u.role, locked: u.locked, createdAt: u.created_at })) });
+    res.json({
+      users: rows.map((u) => ({
+        id: u.id, email: u.email, fullName: u.full_name, role: u.role, locked: u.locked, createdAt: u.created_at,
+        notificationEmail: u.notification_email, emailNotificationsEnabled: u.email_notifications_enabled,
+      })),
+    });
   } catch (err) {
     res.status(503).json({ error: 'No se pudo contactar la base de datos.' });
   }
@@ -104,7 +110,7 @@ router.get('/users', requireAuth, requireCompanyAdmin, async (req, res) => {
 router.post('/users', requireAuth, requireCompanyAdmin, async (req, res) => {
   const pool = await poolForRequest(req, res);
   if (!pool) return;
-  const { email, fullName, role, password } = req.body || {};
+  const { email, fullName, role, password, notificationEmail } = req.body || {};
 
   if (!email || typeof email !== 'string' || !EMAIL_RE.test(email.trim())) {
     return res.status(400).json({ error: 'Ingresá un email válido.' });
@@ -112,6 +118,9 @@ router.post('/users', requireAuth, requireCompanyAdmin, async (req, res) => {
   const finalRole = ROLES.has(role) ? role : 'inspector';
   if (password !== undefined && password !== '' && (typeof password !== 'string' || password.length < 5)) {
     return res.status(400).json({ error: 'La contraseña debe tener al menos 5 caracteres.' });
+  }
+  if (notificationEmail && (typeof notificationEmail !== 'string' || !EMAIL_RE.test(notificationEmail.trim()))) {
+    return res.status(400).json({ error: 'El email de notificaciones no es válido.' });
   }
   const finalPassword = password || generatePassword();
 
@@ -131,15 +140,15 @@ router.post('/users', requireAuth, requireCompanyAdmin, async (req, res) => {
   try {
     const hash = await bcrypt.hash(finalPassword, 10);
     const { rows } = await pool.query(
-      `INSERT INTO users (email, password_hash, full_name, role)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, email, full_name, role, locked, created_at`,
-      [email.trim().toLowerCase(), hash, fullName || null, finalRole]
+      `INSERT INTO users (email, password_hash, full_name, role, notification_email)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, email, full_name, role, locked, created_at, notification_email`,
+      [email.trim().toLowerCase(), hash, fullName || null, finalRole, (notificationEmail || '').trim() || null]
     );
     const u = rows[0];
     res.status(201).json({
       id: u.id, email: u.email, fullName: u.full_name, role: u.role, locked: u.locked, createdAt: u.created_at,
-      password: finalPassword,
+      notificationEmail: u.notification_email, password: finalPassword,
     });
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ error: 'Ya existe un usuario con ese email.' });
@@ -172,11 +181,18 @@ router.post('/users/:id/reset-password', requireAuth, requireCompanyAdmin, async
   try {
     const hash = await bcrypt.hash(newPassword, 10);
     const { rows } = await pool.query(
-      'UPDATE users SET password_hash = $1, failed_attempts = 0, locked_until = NULL WHERE id = $2 RETURNING id, email',
+      `UPDATE users SET password_hash = $1, failed_attempts = 0, locked_until = NULL
+       WHERE id = $2 RETURNING id, email, notification_email, email_notifications_enabled`,
       [hash, req.params.id]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
-    res.json({ email: rows[0].email, password: newPassword });
+    const user = rows[0];
+    if (user.email_notifications_enabled && user.notification_email) {
+      sendPasswordChangedEmail({
+        to: user.notification_email, companyName: req.session.companyName, email: user.email, password: newPassword,
+      }).catch(() => {});
+    }
+    res.json({ email: user.email, password: newPassword });
   } catch (err) {
     res.status(503).json({ error: 'No se pudo contactar la base de datos.' });
   }
@@ -199,11 +215,18 @@ router.post('/users/:id/unlock', requireAuth, requireCompanyAdmin, async (req, r
   if (!pool) return;
   try {
     const { rows } = await pool.query(
-      'UPDATE users SET locked = false, failed_attempts = 0, locked_until = NULL WHERE id = $1 RETURNING id, email, locked',
+      `UPDATE users SET locked = false, failed_attempts = 0, locked_until = NULL
+       WHERE id = $1 RETURNING id, email, locked, notification_email, email_notifications_enabled`,
       [req.params.id]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
-    res.json(rows[0]);
+    const user = rows[0];
+    if (user.email_notifications_enabled && user.notification_email) {
+      sendAccountUnlockedEmail({
+        to: user.notification_email, companyName: req.session.companyName, email: user.email,
+      }).catch(() => {});
+    }
+    res.json({ id: user.id, email: user.email, locked: user.locked });
   } catch (err) {
     res.status(503).json({ error: 'No se pudo contactar la base de datos.' });
   }

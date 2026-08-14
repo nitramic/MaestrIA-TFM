@@ -70,6 +70,9 @@
 .modal-actions .btn { flex: 1; }
 .hint-inline { font-weight: 400; color: var(--gray-600); font-size: 12px; }
 
+.field-checkbox { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--gray-600); margin: 4px 0 12px; }
+.field-checkbox input { width: 16px; height: 16px; flex-shrink: 0; }
+
 .creds-box { background: var(--gray-100); border-radius: var(--radius-sm); padding: 14px; margin: 14px 0; }
 .creds-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: 14px; }
 .creds-label { color: var(--gray-600); }
@@ -87,6 +90,12 @@
 .user-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .user-last-login { color: var(--gray-600); font-size: 12px; text-align: right; white-space: nowrap; line-height: 1.3; }
 .btn-sm { padding: 6px 10px !important; font-size: 12px !important; flex: none !important; }
+
+.user-email-toggle-row { display: flex; align-items: center; gap: 6px; }
+.user-email-toggle-label { font-size: 11px; color: var(--gray-600); white-space: nowrap; }
+.toggle-switch-sm { width: 32px; height: 18px; }
+.toggle-switch-sm::after { width: 14px; height: 14px; }
+.toggle-switch-sm.on::after { transform: translateX(14px); }
 
 .company-pending-alert {
   color: var(--amber); background: var(--amber-tint); border-radius: var(--radius-sm);

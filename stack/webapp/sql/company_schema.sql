@@ -29,6 +29,19 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_requested_at TIMESTAMP
 ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verify_token VARCHAR(128);
 ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verify_expires_at TIMESTAMPTZ;
+-- Toggle en el panel /admin (por usuario, junto al boton "Restablecer") que
+-- habilita/deshabilita TODAS las notificaciones por mail de esa cuenta
+-- (cambio de password, bloqueo por intentos fallidos, desbloqueo). No
+-- afecta el mail de bienvenida, que tiene su propio checkbox al crear la
+-- empresa (ver internal.js).
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_notifications_enabled BOOLEAN NOT NULL DEFAULT true;
+-- El login (columna "email" de arriba) es "usuario@<slug>" -- un
+-- identificador, no una casilla real (slugFromEmail en src/auth.js deriva
+-- la empresa de ese dominio, asi que jamas puede ser un dominio real). Las
+-- notificaciones (cambio de password, bloqueo, desbloqueo) se mandan aca en
+-- vez de a "email". NULL = sin casilla real cargada, no se manda nada (el
+-- checkbox de arriba queda sin efecto).
+ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_email VARCHAR(255);
 
 -- One row per active login, so we can cap concurrent connected users at
 -- companies.license_count (checked/inserted in src/routes/auth.js). Expired

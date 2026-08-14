@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const { directoryPool, getCompanyPool } = require('../db');
 const { issueAdminSession, clearAdminSession, requireAdminAuth } = require('../adminAuth');
+const { sendPasswordChangedEmail } = require('../mail');
 
 const router = express.Router();
 
@@ -137,7 +138,7 @@ router.get('/companies', requireAdminAuth, async (req, res) => {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 router.post('/companies', requireAdminAuth, async (req, res) => {
-  const { slug, displayName, adminPassword, contactEmail, licenseCount } = req.body || {};
+  const { slug, displayName, adminPassword, contactEmail, licenseCount, sendWelcomeEmail } = req.body || {};
   if (!slug || typeof slug !== 'string' || !/^[a-z0-9][a-z0-9_-]*$/.test(slug)) {
     return res.status(400).json({ error: 'Slug inválido (minúsculas, dígitos, - o _).' });
   }
@@ -163,7 +164,10 @@ router.post('/companies', requireAdminAuth, async (req, res) => {
 
   const result = await callInternal('/companies', {
     method: 'POST',
-    body: JSON.stringify({ slug, displayName, adminPassword, contactEmail: contactEmail.trim(), licenseCount: parsedLicenseCount }),
+    body: JSON.stringify({
+      slug, displayName, adminPassword, contactEmail: contactEmail.trim(), licenseCount: parsedLicenseCount,
+      sendWelcomeEmail: sendWelcomeEmail !== false,
+    }),
   });
 
   if (!result.ok) {
@@ -210,7 +214,9 @@ router.get('/companies/:slug/users', requireAdminAuth, async (req, res) => {
 
   try {
     const { rows } = await entry.pool.query(
-      'SELECT id, email, full_name, role, locked, last_login_at, password_reset_requested_at, created_at FROM users ORDER BY created_at'
+      `SELECT id, email, full_name, role, locked, last_login_at, password_reset_requested_at,
+              created_at, email_notifications_enabled, notification_email
+       FROM users ORDER BY created_at`
     );
     res.json({
       users: rows.map((u) => ({
@@ -222,7 +228,37 @@ router.get('/companies/:slug/users', requireAdminAuth, async (req, res) => {
         lastLoginAt: u.last_login_at,
         passwordResetRequestedAt: u.password_reset_requested_at,
         createdAt: u.created_at,
+        emailNotificationsEnabled: u.email_notifications_enabled,
+        notificationEmail: u.notification_email,
       })),
+    });
+  } catch (err) {
+    res.status(503).json({ error: 'No se pudo contactar la base de datos.' });
+  }
+});
+
+router.patch('/companies/:slug/users/:userId', requireAdminAuth, async (req, res) => {
+  const { emailNotificationsEnabled } = req.body || {};
+  if (typeof emailNotificationsEnabled !== 'boolean') {
+    return res.status(400).json({ error: 'Falta el campo emailNotificationsEnabled (boolean).' });
+  }
+
+  let entry;
+  try {
+    entry = await getCompanyPool(req.params.slug);
+  } catch (err) {
+    return res.status(503).json({ error: 'No se pudo contactar la base de datos.' });
+  }
+  if (!entry) return res.status(404).json({ error: 'Empresa no encontrada o no disponible.' });
+
+  try {
+    const { rows } = await entry.pool.query(
+      'UPDATE users SET email_notifications_enabled = $1 WHERE id = $2 RETURNING id, email, email_notifications_enabled',
+      [emailNotificationsEnabled, req.params.userId]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado.' });
+    res.json({
+      id: rows[0].id, email: rows[0].email, emailNotificationsEnabled: rows[0].email_notifications_enabled,
     });
   } catch (err) {
     res.status(503).json({ error: 'No se pudo contactar la base de datos.' });
@@ -244,11 +280,20 @@ router.post('/companies/:slug/users/:userId/reset-password', requireAdminAuth, a
     const hash = await bcrypt.hash(newPassword, 10);
     const { rows } = await entry.pool.query(
       `UPDATE users SET password_hash = $1, failed_attempts = 0, locked_until = NULL, password_reset_requested_at = NULL
-       WHERE id = $2 RETURNING email`,
+       WHERE id = $2 RETURNING email, notification_email, email_notifications_enabled`,
       [hash, req.params.userId]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado.' });
-    res.json({ email: rows[0].email, password: newPassword });
+    const user = rows[0];
+    let notificationEmail = { sent: false, reason: 'Notificaciones desactivadas para este usuario.' };
+    if (user.email_notifications_enabled) {
+      notificationEmail = user.notification_email
+        ? await sendPasswordChangedEmail({
+            to: user.notification_email, companyName: entry.company.display_name, email: user.email, password: newPassword,
+          })
+        : { sent: false, reason: 'El usuario no tiene un email de notificaciones cargado.' };
+    }
+    res.json({ email: user.email, password: newPassword, notificationEmail });
   } catch (err) {
     res.status(503).json({ error: 'No se pudo contactar la base de datos.' });
   }
@@ -271,11 +316,21 @@ router.post('/companies/:slug/admin-password', requireAdminAuth, async (req, res
   try {
     const hash = await bcrypt.hash(newPassword, 10);
     const { rows } = await entry.pool.query(
-      'UPDATE users SET password_hash = $1, failed_attempts = 0, locked_until = NULL WHERE lower(email) = lower($2) RETURNING email',
+      `UPDATE users SET password_hash = $1, failed_attempts = 0, locked_until = NULL
+       WHERE lower(email) = lower($2) RETURNING email, notification_email, email_notifications_enabled`,
       [hash, adminEmail]
     );
     if (rows.length === 0) return res.status(404).json({ error: `No existe el usuario ${adminEmail}.` });
-    res.json({ email: adminEmail, password: newPassword });
+    const admin = rows[0];
+    let notificationEmail = { sent: false, reason: 'Notificaciones desactivadas para este usuario.' };
+    if (admin.email_notifications_enabled) {
+      notificationEmail = admin.notification_email
+        ? await sendPasswordChangedEmail({
+            to: admin.notification_email, companyName: entry.company.display_name, email: adminEmail, password: newPassword,
+          })
+        : { sent: false, reason: 'El usuario no tiene un email de notificaciones cargado.' };
+    }
+    res.json({ email: adminEmail, password: newPassword, notificationEmail });
   } catch (err) {
     res.status(503).json({ error: 'No se pudo contactar la base de datos.' });
   }

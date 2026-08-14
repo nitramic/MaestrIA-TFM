@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 const { getCompanyPool } = require('../db');
 const { slugFromEmail, issueSession, clearSession, requireAuth, COOKIE_NAME } = require('../auth');
 const { loginAttemptsTotal } = require('../metrics');
+const { sendAccountLockedEmail } = require('../mail');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
@@ -67,7 +68,9 @@ router.post('/login', loginLimiter, async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      'SELECT id, email, password_hash, role, full_name, failed_attempts, locked_until, locked, timezone FROM users WHERE lower(email) = lower($1)',
+      `SELECT id, email, password_hash, role, full_name, failed_attempts, locked_until, locked, timezone,
+              email_notifications_enabled, notification_email
+       FROM users WHERE lower(email) = lower($1)`,
       [email]
     );
 
@@ -102,6 +105,12 @@ router.post('/login', loginLimiter, async (req, res) => {
           [attempts, user.id]
         );
         loginAttemptsTotal.inc({ result: 'too_many_attempts', company: slug });
+        // Fire-and-forget: el login no debe quedar a la espera del SMTP.
+        if (user.email_notifications_enabled && user.notification_email) {
+          sendAccountLockedEmail({
+            to: user.notification_email, companyName: company.display_name, email: user.email, minutes: LOCK_MINUTES,
+          }).catch(() => {});
+        }
         return res.status(429).json({
           error: `Demasiados intentos fallidos. Cuenta bloqueada por ${LOCK_MINUTES} minutos.`,
         });

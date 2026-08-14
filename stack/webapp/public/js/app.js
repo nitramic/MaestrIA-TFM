@@ -824,6 +824,7 @@
       document.getElementById('create-user-fullname').value = '';
       document.getElementById('create-user-role').value = 'inspector';
       document.getElementById('create-user-password').value = '';
+      document.getElementById('create-user-notification-email').value = '';
       createAlert.classList.add('hidden');
       createModal.classList.remove('hidden');
     });
@@ -837,6 +838,7 @@
       const fullName = document.getElementById('create-user-fullname').value.trim();
       const role = document.getElementById('create-user-role').value;
       const password = document.getElementById('create-user-password').value.trim();
+      const notificationEmail = document.getElementById('create-user-notification-email').value.trim();
       createAlert.classList.add('hidden');
 
       const btn = document.getElementById('create-user-submit-btn');
@@ -844,6 +846,7 @@
       try {
         const payload = { email, fullName, role };
         if (password) payload.password = password;
+        if (notificationEmail) payload.notificationEmail = notificationEmail;
         const created = await api('/settings/users', { method: 'POST', body: JSON.stringify(payload) });
         createModal.classList.add('hidden');
         await loadSettingsUsers();

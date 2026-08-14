@@ -268,6 +268,7 @@
     document.getElementById('create-password').value = '';
     document.getElementById('create-email').value = '';
     document.getElementById('create-licenses').value = '5';
+    document.getElementById('create-send-welcome-email').checked = true;
     createAlert.classList.add('hidden');
     createModal.classList.remove('hidden');
   });
@@ -280,6 +281,7 @@
     const adminPassword = document.getElementById('create-password').value.trim();
     const contactEmail = document.getElementById('create-email').value.trim();
     const licenseCount = parseInt(document.getElementById('create-licenses').value, 10);
+    const sendWelcomeEmail = document.getElementById('create-send-welcome-email').checked;
     createAlert.classList.add('hidden');
 
     if (!/^[a-z0-9][a-z0-9_-]*$/.test(slug)) {
@@ -307,7 +309,7 @@
     btn.disabled = true;
     btn.textContent = t('admin.creating');
     try {
-      const payload = { slug, displayName, contactEmail, licenseCount };
+      const payload = { slug, displayName, contactEmail, licenseCount, sendWelcomeEmail };
       if (adminPassword) payload.adminPassword = adminPassword;
       const created = await api('/companies', { method: 'POST', body: JSON.stringify(payload) });
       createModal.classList.add('hidden');
@@ -378,6 +380,16 @@
         </div>
         <div class="user-side">
           <div class="user-last-login">${t('admin.lastLogin')}<br>${formatLastLogin(u.lastLoginAt)}</div>
+          <div class="user-email-toggle-row">
+            <span class="user-email-toggle-label">${t('admin.emailNotifications')}</span>
+            <button
+              class="toggle-switch toggle-switch-sm ${u.emailNotificationsEnabled ? 'on' : ''}"
+              data-action="user-email-toggle"
+              data-user-id="${u.id}"
+              data-enabled="${u.emailNotificationsEnabled}"
+              title="${t('admin.emailNotifications')}"
+            ></button>
+          </div>
           <button class="btn btn-outline btn-sm" data-action="user-reset-password" data-user-id="${u.id}">${t('admin.reset')}</button>
         </div>
       </div>
@@ -387,6 +399,26 @@
   }
 
   document.getElementById('users-list').addEventListener('click', async (e) => {
+    const toggleBtn = e.target.closest('[data-action="user-email-toggle"]');
+    if (toggleBtn) {
+      const enabled = toggleBtn.dataset.enabled === 'true';
+      toggleBtn.disabled = true;
+      try {
+        await api(`/companies/${encodeURIComponent(usersModalSlug)}/users/${toggleBtn.dataset.userId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ emailNotificationsEnabled: !enabled }),
+        });
+        toggleBtn.dataset.enabled = String(!enabled);
+        toggleBtn.classList.toggle('on', !enabled);
+      } catch (err) {
+        usersAlert.textContent = (err.data && err.data.error) || t('admin.errUsersLoad');
+        usersAlert.classList.remove('hidden');
+      } finally {
+        toggleBtn.disabled = false;
+      }
+      return;
+    }
+
     const btn = e.target.closest('[data-action="user-reset-password"]');
     if (!btn) return;
     btn.disabled = true;

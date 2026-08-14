@@ -35,7 +35,10 @@ router.use((req, res, next) => {
 });
 
 router.post('/companies', async (req, res) => {
-  const { slug, displayName, adminPassword: providedPassword, contactEmail, licenseCount: rawLicenseCount } = req.body || {};
+  const {
+    slug, displayName, adminPassword: providedPassword, contactEmail,
+    licenseCount: rawLicenseCount, sendWelcomeEmail: shouldSendWelcomeEmail,
+  } = req.body || {};
   if (!slug || typeof slug !== 'string' || !/^[a-z0-9][a-z0-9_-]*$/.test(slug)) {
     return res.status(400).json({ error: 'Slug inválido.' });
   }
@@ -64,10 +67,10 @@ router.post('/companies', async (req, res) => {
       await client.query(COMPANY_SCHEMA_SQL);
       const hash = await bcrypt.hash(adminPassword, 10);
       await client.query(
-        `INSERT INTO users (email, password_hash, full_name, role, email_verify_token, email_verify_expires_at)
-         VALUES ($1, $2, $3, 'admin', $4, now() + interval '7 days')
-         ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, email_verify_token = EXCLUDED.email_verify_token, email_verify_expires_at = EXCLUDED.email_verify_expires_at`,
-        [adminEmail, hash, `Admin ${name}`, verifyToken]
+        `INSERT INTO users (email, password_hash, full_name, role, email_verify_token, email_verify_expires_at, notification_email)
+         VALUES ($1, $2, $3, 'admin', $4, now() + interval '7 days', $5)
+         ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, email_verify_token = EXCLUDED.email_verify_token, email_verify_expires_at = EXCLUDED.email_verify_expires_at, notification_email = EXCLUDED.notification_email`,
+        [adminEmail, hash, `Admin ${name}`, verifyToken, contactEmail || null]
       );
     } finally {
       await client.end();
@@ -75,11 +78,17 @@ router.post('/companies', async (req, res) => {
 
     await directoryPool.query("UPDATE companies SET status = 'ready', status_message = NULL WHERE slug = $1", [slug]);
 
-    let emailResult = { sent: false, reason: 'Sin email de contacto.' };
-    if (contactEmail) {
-      emailResult = await sendWelcomeEmail({
-        to: contactEmail, companyName: name, email: adminEmail, password: adminPassword, slug, verifyToken,
-      });
+    // Default true: add-company.sh (linea de comandos) no manda este campo
+    // y siempre espero el mail, como antes de este checkbox.
+    const wantsWelcomeEmail = shouldSendWelcomeEmail !== false;
+    let emailResult = { sent: false, reason: 'Desactivado al crear la empresa.' };
+    if (wantsWelcomeEmail) {
+      emailResult = contactEmail
+        ? await sendWelcomeEmail({
+            to: contactEmail, companyName: name, email: adminEmail, password: adminPassword,
+            slug, licenseCount, verifyToken,
+          })
+        : { sent: false, reason: 'Sin email de contacto.' };
     }
 
     res.status(201).json({
