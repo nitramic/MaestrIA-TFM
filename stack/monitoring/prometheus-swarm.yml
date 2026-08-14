@@ -48,7 +48,7 @@ scrape_configs:
       - source_labels: [__meta_dockerswarm_node_hostname]
         target_label: node
 
-  # App fireguard (app1..app5 -- escalados via scale-out.sh/scale-in.sh --
+  # App fireguard (app1..app6 -- escalados via scale-out.sh/scale-in.sh --
   # y admin-worker): metricas propias expuestas por server.js en /metrics
   # via prom-client (uso HTTP, logins, logins erroneos).
   - job_name: fireguard-app
@@ -57,7 +57,7 @@ scrape_configs:
         role: tasks
     relabel_configs:
       - source_labels: [__meta_dockerswarm_service_name]
-        regex: 'fireguard_(app[1-5]|admin-worker)'
+        regex: 'fireguard_(app[1-6]|admin-worker)'
         action: keep
       - source_labels: [__meta_dockerswarm_task_desired_state]
         regex: running
