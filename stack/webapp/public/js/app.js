@@ -33,6 +33,7 @@
     settingsBound: false,
     reportsTypesLoaded: false,
     selectedUserIds: new Set(),
+    usersById: new Map(),
   };
 
   function show(view) {
@@ -750,12 +751,14 @@
   function updateUsersToolbarState() {
     const n = state.selectedUserIds.size;
     document.getElementById('settings-users-delete-btn').disabled = n === 0;
+    document.getElementById('settings-users-edit-btn').disabled = n !== 1;
     document.getElementById('settings-users-reset-btn').disabled = n !== 1;
     document.getElementById('settings-users-hint').classList.toggle('hidden', n <= 1);
   }
 
   function renderUsersList(users) {
     state.selectedUserIds.clear();
+    state.usersById = new Map(users.map((u) => [String(u.id), u]));
     updateUsersToolbarState();
 
     const container = document.getElementById('settings-users-list');
@@ -814,13 +817,21 @@
     document.getElementById('modal-user-credentials').classList.remove('hidden');
   }
 
+  function companySlug() {
+    const sessionEmail = state.session && state.session.email;
+    return (sessionEmail && sessionEmail.includes('@')) ? sessionEmail.split('@')[1] : '';
+  }
+
   function bindSettingsUsersOnce() {
     const createModal = document.getElementById('modal-create-user');
     const createAlert = document.getElementById('create-user-alert');
+    const editModal = document.getElementById('modal-edit-user');
+    const editAlert = document.getElementById('edit-user-alert');
     const usersAlert = document.getElementById('settings-users-alert');
 
     document.getElementById('settings-users-create-btn').addEventListener('click', () => {
       document.getElementById('create-user-email').value = '';
+      document.getElementById('create-user-email-suffix').textContent = '@' + companySlug();
       document.getElementById('create-user-fullname').value = '';
       document.getElementById('create-user-role').value = 'inspector';
       document.getElementById('create-user-password').value = '';
@@ -834,7 +845,8 @@
     });
 
     document.getElementById('create-user-submit-btn').addEventListener('click', async () => {
-      const email = document.getElementById('create-user-email').value.trim();
+      const username = document.getElementById('create-user-email').value.trim();
+      const email = username.includes('@') ? username : `${username}@${companySlug()}`;
       const fullName = document.getElementById('create-user-fullname').value.trim();
       const role = document.getElementById('create-user-role').value;
       const password = document.getElementById('create-user-password').value.trim();
@@ -854,6 +866,52 @@
       } catch (err) {
         createAlert.textContent = (err.data && err.data.error) || t('settings.users.errCreate');
         createAlert.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById('settings-users-edit-btn').addEventListener('click', () => {
+      const ids = Array.from(state.selectedUserIds);
+      if (ids.length !== 1) return;
+      const user = state.usersById.get(ids[0]);
+      if (!user) return;
+      editModal.dataset.userId = user.id;
+      document.getElementById('edit-user-email').value = user.email;
+      document.getElementById('edit-user-fullname').value = user.fullName || '';
+      document.getElementById('edit-user-role').value = user.role;
+      document.getElementById('edit-user-notification-email').value = user.notificationEmail || '';
+      editAlert.classList.add('hidden');
+      editModal.classList.remove('hidden');
+    });
+
+    document.getElementById('edit-user-cancel-btn').addEventListener('click', () => {
+      editModal.classList.add('hidden');
+    });
+
+    document.getElementById('edit-user-submit-btn').addEventListener('click', async () => {
+      const id = editModal.dataset.userId;
+      if (!id) return;
+      const fullName = document.getElementById('edit-user-fullname').value.trim();
+      const role = document.getElementById('edit-user-role').value;
+      const notificationEmail = document.getElementById('edit-user-notification-email').value.trim();
+      editAlert.classList.add('hidden');
+
+      const btn = document.getElementById('edit-user-submit-btn');
+      btn.disabled = true;
+      try {
+        await api(`/settings/users/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ fullName, role, notificationEmail }),
+        });
+        editModal.classList.add('hidden');
+        await loadSettingsUsers();
+        const toast = document.getElementById('settings-toast');
+        toast.textContent = t('toast.saved');
+        toast.classList.remove('hidden');
+      } catch (err) {
+        editAlert.textContent = (err.data && err.data.error) || t('settings.users.errEdit');
+        editAlert.classList.remove('hidden');
       } finally {
         btn.disabled = false;
       }

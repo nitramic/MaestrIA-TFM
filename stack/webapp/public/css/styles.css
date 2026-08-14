@@ -128,6 +128,10 @@ html, body {
 
 .hint { color: var(--gray-600); font-size: 13px; margin: 6px 0 0; }
 
+.username-input-row { display: flex; align-items: center; gap: 8px; }
+.username-input-row .username-input { width: 60%; }
+.username-suffix { color: var(--gray-600); font-size: 15px; font-weight: 600; white-space: nowrap; }
+
 .alert {
   display: flex; align-items: center; gap: 8px; border-radius: var(--radius-sm);
   padding: 12px 14px; font-size: 14px; margin-top: 14px;

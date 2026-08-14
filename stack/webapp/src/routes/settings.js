@@ -157,6 +157,34 @@ router.post('/users', requireAuth, requireCompanyAdmin, async (req, res) => {
   }
 });
 
+router.put('/users/:id', requireAuth, requireCompanyAdmin, async (req, res) => {
+  const pool = await poolForRequest(req, res);
+  if (!pool) return;
+  const { fullName, role, notificationEmail } = req.body || {};
+
+  const finalRole = ROLES.has(role) ? role : 'inspector';
+  if (notificationEmail && (typeof notificationEmail !== 'string' || !EMAIL_RE.test(notificationEmail.trim()))) {
+    return res.status(400).json({ error: 'El email de notificaciones no es válido.' });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `UPDATE users SET full_name = $1, role = $2, notification_email = $3
+       WHERE id = $4
+       RETURNING id, email, full_name, role, locked, created_at, notification_email, email_notifications_enabled`,
+      [fullName || null, finalRole, (notificationEmail || '').trim() || null, req.params.id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
+    const u = rows[0];
+    res.json({
+      id: u.id, email: u.email, fullName: u.full_name, role: u.role, locked: u.locked, createdAt: u.created_at,
+      notificationEmail: u.notification_email,
+    });
+  } catch (err) {
+    res.status(503).json({ error: 'No se pudo contactar la base de datos.' });
+  }
+});
+
 router.delete('/users/:id', requireAuth, requireCompanyAdmin, async (req, res) => {
   const pool = await poolForRequest(req, res);
   if (!pool) return;

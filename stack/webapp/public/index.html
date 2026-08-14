@@ -342,6 +342,7 @@
         <div id="settings-users-hint" class="hint settings-users-hint hidden" data-i18n="settings.users.selectOnlyOne">Seleccioná solo 1 usuario.</div>
         <div class="settings-users-toolbar">
           <button type="button" id="settings-users-create-btn" class="btn btn-secondary" data-i18n="settings.users.create">Crear usuario</button>
+          <button type="button" id="settings-users-edit-btn" class="btn btn-outline" disabled data-i18n="settings.users.edit">Modificar</button>
           <button type="button" id="settings-users-delete-btn" class="btn btn-outline" disabled data-i18n="settings.users.deleteSelected">Eliminar</button>
           <button type="button" id="settings-users-reset-btn" class="btn btn-outline" disabled data-i18n="settings.users.resetPassword">Restablecer contraseña</button>
         </div>
@@ -353,8 +354,11 @@
   <div id="modal-create-user" class="modal-overlay hidden">
     <div class="modal card">
       <h2 class="modal-title" data-i18n="settings.users.createTitle">Crear usuario</h2>
-      <label class="field-label" for="create-user-email" data-i18n="forgot.email">Email</label>
-      <input id="create-user-email" class="input" type="text" autocomplete="off" />
+      <label class="field-label" for="create-user-email" data-i18n="settings.users.username">Usuario</label>
+      <div class="username-input-row">
+        <input id="create-user-email" class="input username-input" type="text" autocomplete="off" />
+        <span id="create-user-email-suffix" class="username-suffix"></span>
+      </div>
       <label class="field-label" for="create-user-fullname" data-i18n="settings.users.fullName">Nombre completo</label>
       <input id="create-user-fullname" class="input" type="text" autocomplete="off" />
       <label class="field-label" for="create-user-role" data-i18n="settings.users.role">Rol</label>
@@ -372,6 +376,30 @@
       <div class="modal-actions">
         <button type="button" id="create-user-cancel-btn" class="btn btn-outline" data-i18n="admin.cancel">Cancelar</button>
         <button type="button" id="create-user-submit-btn" class="btn btn-primary" data-i18n="admin.create">Crear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== EDIT USER MODAL ===================== -->
+  <div id="modal-edit-user" class="modal-overlay hidden">
+    <div class="modal card">
+      <h2 class="modal-title" data-i18n="settings.users.editTitle">Modificar usuario</h2>
+      <label class="field-label" for="edit-user-email" data-i18n="settings.users.username">Usuario</label>
+      <input id="edit-user-email" class="input" type="text" disabled />
+      <label class="field-label" for="edit-user-fullname" data-i18n="settings.users.fullName">Nombre completo</label>
+      <input id="edit-user-fullname" class="input" type="text" autocomplete="off" />
+      <label class="field-label" for="edit-user-role" data-i18n="settings.users.role">Rol</label>
+      <select id="edit-user-role" class="input select">
+        <option value="inspector" data-i18n="settings.users.roleInspector">Inspector</option>
+        <option value="admin" data-i18n="settings.users.roleAdmin">Administrador</option>
+      </select>
+      <label class="field-label" for="edit-user-notification-email" data-i18n="settings.users.notificationEmail">Email de notificaciones</label>
+      <input id="edit-user-notification-email" class="input" type="email" autocomplete="off" data-i18n-placeholder="settings.users.notificationEmailPlaceholder" placeholder="persona@empresa.com" />
+      <p class="hint" data-i18n="settings.users.notificationEmailHint">Casilla real donde llegan los avisos de cambio de contraseña y bloqueo/desbloqueo. El email de arriba es solo el usuario de login, no una casilla real.</p>
+      <div id="edit-user-alert" class="alert alert-error hidden"></div>
+      <div class="modal-actions">
+        <button type="button" id="edit-user-cancel-btn" class="btn btn-outline" data-i18n="admin.cancel">Cancelar</button>
+        <button type="button" id="edit-user-submit-btn" class="btn btn-primary" data-i18n="detail.saveChanges">Guardar cambios</button>
       </div>
     </div>
   </div>
