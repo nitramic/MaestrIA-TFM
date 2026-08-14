@@ -198,19 +198,56 @@ groups:
     folder: Alertas
     interval: 1m
     rules:
+      # Cuenta de instancias sanas en vez de "up por instancia": el numero de
+      # nodos appN cambia con scale-out.sh/scale-in.sh (2 a 6), asi que un
+      # chequeo por instancia dispararia "no data"/alerta cada vez que un
+      # scale-in intencional borra un servicio (la serie up{...} de esa
+      # instancia deja de reportar, no porque se haya caido). El "OR
+      # vector(0)" evita depender de noDataState cuando la cuenta cae a 0:
+      # count() sobre un vector vacio no da 0, da vacio, y sin el OR esta
+      # regla nunca compararia contra el umbral en ese caso.
       - uid: app-instance-down
-        title: 'App: instancia caida'
+        title: 'App: menos instancias sanas que el minimo esperado'
         condition: B
         for: 2m
         noDataState: NoData
         execErrState: Alerting
         labels: { severity: critical }
-        annotations: { summary: 'El servicio {{ $labels.service }} no responde en /metrics.' }
+        annotations: { summary: 'Solo {{ $values.A }} instancia(s) de la webapp responden en /metrics (minimo esperado: 2, ver MIN_APPS en scale-in.sh). Si fue un scale-in intencional no deberia sostenerse mas de un par de minutos.' }
         data:
           - refId: A
             datasourceUid: prometheus-swarm
             relativeTimeRange: { from: 60, to: 0 }
-            model: { refId: A, instant: true, expr: 'up{job="fireguard-app"}' }
+            model: { refId: A, instant: true, expr: 'count(up{job="fireguard-app", service=~"fireguard_app.*"} == 1) OR vector(0)' }
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange: { from: 0, to: 0 }
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: lt, params: [2] }
+                  operator: { type: and }
+                  query: { params: [B] }
+                  reducer: { type: last, params: [] }
+
+      # admin-worker es una replica fija (nunca la tocan scale-out.sh/
+      # scale-in.sh), asi que el chequeo por instancia sigue siendo correcto
+      # aca -- separado del de arriba para no diluir la cuenta de appN.
+      - uid: app-admin-worker-down
+        title: 'App: admin-worker caido'
+        condition: B
+        for: 2m
+        noDataState: NoData
+        execErrState: Alerting
+        labels: { severity: critical }
+        annotations: { summary: 'admin-worker no responde en /metrics -- alta/baja de empresas fuera de servicio.' }
+        data:
+          - refId: A
+            datasourceUid: prometheus-swarm
+            relativeTimeRange: { from: 60, to: 0 }
+            model: { refId: A, instant: true, expr: 'up{job="fireguard-app", service="fireguard_admin-worker"}' }
           - refId: B
             datasourceUid: __expr__
             relativeTimeRange: { from: 0, to: 0 }
