@@ -148,14 +148,13 @@ SLACK_WEBHOOK_URL=''
 # --- avisa nada por Slack.
 SLACK_APP_EVENTS_WEBHOOK_URL=''
 
-# --- Email de bienvenida (opcional -- si SMTP_HOST queda vacio, el alta de
-# --- empresa funciona igual pero no se envia el mail). Completar a mano con
-# --- las credenciales SMTP del proveedor que uses.
+# --- Email de bienvenida y notificaciones (opcional -- si BREVO_API_KEY
+# --- queda vacio, la app funciona igual pero no se envia ningun mail). Via
+# --- la API HTTPS de Brevo (no SMTP -- varios proveedores de VPS bloquean
+# --- los puertos SMTP salientes por defecto). Brevo -> Settings -> SMTP &
+# --- API -> pestana "API Keys" -> generar una nueva.
 APP_BASE_URL='http://localhost:8081'
-SMTP_HOST=''
-SMTP_PORT='587'
-SMTP_USER=''
-SMTP_PASSWORD=''
+BREVO_API_KEY=''
 SMTP_FROM='FireGuard <no-reply@fireguard.local>'
 
 # --- Tunel de Cloudflare (opcional -- si queda vacio, deploy-tunnel.sh

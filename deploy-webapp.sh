@@ -113,10 +113,7 @@ $COMPOSE exec -T \
   -e INTERNAL_ADMIN_TOKEN="${INTERNAL_ADMIN_TOKEN}" \
   -e DIRECTORY_DB_PASSWORD="${DIRECTORY_DB_PASSWORD}" \
   -e APP_BASE_URL="${APP_BASE_URL:-http://localhost:8081}" \
-  -e SMTP_HOST="${SMTP_HOST:-}" \
-  -e SMTP_PORT="${SMTP_PORT:-587}" \
-  -e SMTP_USER="${SMTP_USER:-}" \
-  -e SMTP_PASSWORD="${SMTP_PASSWORD:-}" \
+  -e BREVO_API_KEY="${BREVO_API_KEY:-}" \
   -e SMTP_FROM="${SMTP_FROM:-FireGuard <no-reply@fireguard.local>}" \
   -e SLACK_APP_EVENTS_WEBHOOK_URL="${SLACK_APP_EVENTS_WEBHOOK_URL:-}" \
   swarm-manager docker stack deploy -c /stack/webapp/docker-stack.yml fireguard

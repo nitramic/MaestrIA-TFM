@@ -20,10 +20,10 @@ services:
       # directo (lockout, reset de password, notificaciones), no solo el
       # de bienvenida (que si pasa por admin-worker via callInternal).
       - APP_BASE_URL=${APP_BASE_URL:-http://localhost:8081}
-      - SMTP_HOST=${SMTP_HOST:-}
-      - SMTP_PORT=${SMTP_PORT:-587}
-      - SMTP_USER=${SMTP_USER:-}
-      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      # Brevo por su API HTTPS, no SMTP -- varios proveedores de VPS (Clouding
+      # incluido) bloquean los puertos SMTP salientes por defecto en cuentas
+      # nuevas, y el 443 siempre sale. Ver src/mail.js.
+      - BREVO_API_KEY=${BREVO_API_KEY:-}
       - SMTP_FROM=${SMTP_FROM:-FireGuard <no-reply@fireguard.local>}
       # Avisos a Slack (#app-events): bloqueo de cuenta, reset de password.
       # Alta/baja de empresa se notifican desde admin-worker (ver mas abajo).
@@ -86,10 +86,7 @@ services:
       - DOCKER_SOCKET=/var/run/docker.sock
       - FIREGUARD_NETWORK=fireguard-net
       - APP_BASE_URL=${APP_BASE_URL:-http://localhost:8081}
-      - SMTP_HOST=${SMTP_HOST:-}
-      - SMTP_PORT=${SMTP_PORT:-587}
-      - SMTP_USER=${SMTP_USER:-}
-      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - BREVO_API_KEY=${BREVO_API_KEY:-}
       - SMTP_FROM=${SMTP_FROM:-FireGuard <no-reply@fireguard.local>}
       # Avisos a Slack (#app-events): alta/baja de empresa (routes/internal.js).
       - SLACK_APP_EVENTS_WEBHOOK_URL=${SLACK_APP_EVENTS_WEBHOOK_URL:-}

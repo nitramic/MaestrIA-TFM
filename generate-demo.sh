@@ -94,12 +94,10 @@ DEMO_ADMIN_PASSWORD_HASH='${DEMO_ADMIN_PASSWORD_HASH}'
 # --- Alertas (no se puede generar -- pegar a mano) ---
 SLACK_WEBHOOK_URL=''
 
-# --- Email de bienvenida (opcional -- vacio = no se envia el mail) ---
+# --- Email de bienvenida y notificaciones, via API HTTPS de Brevo, no SMTP
+# --- (opcional -- vacio = no se envia el mail) ---
 APP_BASE_URL='http://localhost:8081'
-SMTP_HOST=''
-SMTP_PORT='587'
-SMTP_USER=''
-SMTP_PASSWORD=''
+BREVO_API_KEY=''
 SMTP_FROM='FireGuard <no-reply@fireguard.local>'
 
 # --- Tunel de Cloudflare (opcional -- pegar a mano, ver deploy-tunnel.sh) ---

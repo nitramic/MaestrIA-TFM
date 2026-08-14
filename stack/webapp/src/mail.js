@@ -1,24 +1,19 @@
-const nodemailer = require('nodemailer');
-
-const SMTP_HOST = process.env.SMTP_HOST || '';
-const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
-const SMTP_USER = process.env.SMTP_USER || '';
-const SMTP_PASSWORD = process.env.SMTP_PASSWORD || '';
+// Brevo por su API HTTPS (puerto 443), no SMTP: varios proveedores de VPS
+// (incluida la VM de demo, Clouding.io) bloquean los puertos SMTP salientes
+// (587/465) por defecto para cuentas nuevas/de prueba, y en Clouding esa
+// opcion ni siquiera se puede activar en esa fase -- ver "The option to
+// allow/block SMTP is not available" al pedir el unlock por su API. El 443
+// (HTTPS normal) sale sin problema en cualquier lado, asi que la API evita
+// el problema de raiz en vez de depender de que cada VM tenga el puerto
+// abierto.
+const BREVO_API_KEY = process.env.BREVO_API_KEY || '';
 const SMTP_FROM = process.env.SMTP_FROM || 'FireGuard <no-reply@fireguard.local>';
 const APP_BASE_URL = (process.env.APP_BASE_URL || 'http://localhost:8081').replace(/\/$/, '');
 
-let transporter = null;
-function getTransporter() {
-  if (!SMTP_HOST) return null;
-  if (!transporter) {
-    transporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      secure: SMTP_PORT === 465,
-      auth: SMTP_USER ? { user: SMTP_USER, pass: SMTP_PASSWORD } : undefined,
-    });
-  }
-  return transporter;
+function parseFrom(fromHeader) {
+  const m = String(fromHeader).match(/^\s*"?([^"<]*)"?\s*<(.+)>\s*$/);
+  if (m) return { name: m[1].trim() || undefined, email: m[2].trim() };
+  return { email: String(fromHeader).trim() };
 }
 
 function escapeHtml(str) {
@@ -130,82 +125,74 @@ function accountUnlockedEmailHtml({ companyName, email }) {
   return emailShell('Tu cuenta fue desbloqueada', body);
 }
 
-// Best-effort en las cuatro: la accion que dispara el mail (alta de
-// empresa, cambio de password, bloqueo, desbloqueo) ya se aplico
-// igual -- si el mail no sale (SMTP no configurado, destinatario
-// invalido, etc.) no se revierte nada, solo se informa en la respuesta.
-async function sendWelcomeEmail({ to, companyName, email, password, slug, licenseCount, verifyToken }) {
-  const t = getTransporter();
-  if (!t) return { sent: false, reason: 'SMTP no configurado (SMTP_HOST vacío).' };
-  if (!to) return { sent: false, reason: 'Sin email de contacto.' };
-
-  const verifyUrl = `${APP_BASE_URL}/api/auth/verify-email?slug=${encodeURIComponent(slug)}&token=${encodeURIComponent(verifyToken)}`;
+// Best-effort: la accion que dispara el mail (alta de empresa, cambio de
+// password, bloqueo, desbloqueo) ya se aplico igual -- si el mail no sale
+// (API key no configurada, destinatario invalido, Brevo devuelve error,
+// etc.) no se revierte nada, solo se informa en la respuesta.
+async function sendViaBrevo({ to, subject, html }) {
+  if (!BREVO_API_KEY) return { sent: false, reason: 'BREVO_API_KEY no configurada.' };
+  if (!to) return { sent: false, reason: 'Sin email de destino.' };
 
   try {
-    await t.sendMail({
-      from: SMTP_FROM,
-      to,
-      subject: `Bienvenido a FireGuard - ${companyName}`,
-      html: welcomeEmailHtml({ companyName, email, password, licenseCount, verifyUrl }),
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'api-key': BREVO_API_KEY,
+      },
+      body: JSON.stringify({
+        sender: parseFrom(SMTP_FROM),
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
     });
+    if (!res.ok) {
+      let reason = `Brevo respondió ${res.status}`;
+      try {
+        const data = await res.json();
+        if (data && data.message) reason = data.message;
+      } catch (e) { /* sin body json */ }
+      return { sent: false, reason };
+    }
     return { sent: true };
   } catch (err) {
     return { sent: false, reason: (err && err.message) || String(err) };
   }
+}
+
+async function sendWelcomeEmail({ to, companyName, email, password, slug, licenseCount, verifyToken }) {
+  const verifyUrl = `${APP_BASE_URL}/api/auth/verify-email?slug=${encodeURIComponent(slug)}&token=${encodeURIComponent(verifyToken)}`;
+  return sendViaBrevo({
+    to,
+    subject: `Bienvenido a FireGuard - ${companyName}`,
+    html: welcomeEmailHtml({ companyName, email, password, licenseCount, verifyUrl }),
+  });
 }
 
 async function sendPasswordChangedEmail({ to, companyName, email, password }) {
-  const t = getTransporter();
-  if (!t) return { sent: false, reason: 'SMTP no configurado (SMTP_HOST vacío).' };
-  if (!to) return { sent: false, reason: 'Sin email de destino.' };
-
-  try {
-    await t.sendMail({
-      from: SMTP_FROM,
-      to,
-      subject: 'FireGuard - Tu contraseña fue actualizada',
-      html: passwordChangedEmailHtml({ companyName, email, password }),
-    });
-    return { sent: true };
-  } catch (err) {
-    return { sent: false, reason: (err && err.message) || String(err) };
-  }
+  return sendViaBrevo({
+    to,
+    subject: 'FireGuard - Tu contraseña fue actualizada',
+    html: passwordChangedEmailHtml({ companyName, email, password }),
+  });
 }
 
 async function sendAccountLockedEmail({ to, companyName, email, minutes }) {
-  const t = getTransporter();
-  if (!t) return { sent: false, reason: 'SMTP no configurado (SMTP_HOST vacío).' };
-  if (!to) return { sent: false, reason: 'Sin email de destino.' };
-
-  try {
-    await t.sendMail({
-      from: SMTP_FROM,
-      to,
-      subject: 'FireGuard - Tu cuenta fue bloqueada temporalmente',
-      html: accountLockedEmailHtml({ companyName, email, minutes }),
-    });
-    return { sent: true };
-  } catch (err) {
-    return { sent: false, reason: (err && err.message) || String(err) };
-  }
+  return sendViaBrevo({
+    to,
+    subject: 'FireGuard - Tu cuenta fue bloqueada temporalmente',
+    html: accountLockedEmailHtml({ companyName, email, minutes }),
+  });
 }
 
 async function sendAccountUnlockedEmail({ to, companyName, email }) {
-  const t = getTransporter();
-  if (!t) return { sent: false, reason: 'SMTP no configurado (SMTP_HOST vacío).' };
-  if (!to) return { sent: false, reason: 'Sin email de destino.' };
-
-  try {
-    await t.sendMail({
-      from: SMTP_FROM,
-      to,
-      subject: 'FireGuard - Tu cuenta fue desbloqueada',
-      html: accountUnlockedEmailHtml({ companyName, email }),
-    });
-    return { sent: true };
-  } catch (err) {
-    return { sent: false, reason: (err && err.message) || String(err) };
-  }
+  return sendViaBrevo({
+    to,
+    subject: 'FireGuard - Tu cuenta fue desbloqueada',
+    html: accountUnlockedEmailHtml({ companyName, email }),
+  });
 }
 
 module.exports = {

@@ -38,9 +38,9 @@ Genera valores random para `JWT_SECRET`, `INTERNAL_ADMIN_TOKEN`,
 superadmin y de la empresa demo. `deploy-webapp.sh`, `deploy-demo.sh` y
 `scale-out.sh` lo leen automáticamente — sin este archivo, no despliegan.
 
-**Migrar un `secrets.env` ya probado a otra VM** (por ejemplo, uno con SMTP
-de Brevo ya verificado): al estar fuera de git, no viaja con `git clone` —
-copialo aparte:
+**Migrar un `secrets.env` ya probado a otra VM** (por ejemplo, uno con la
+`BREVO_API_KEY` ya verificada): al estar fuera de git, no viaja con `git
+clone` — copialo aparte:
 
 ```bash
 scp secrets.env usuario@vm-nueva:/ruta/al/repo/secrets.env
