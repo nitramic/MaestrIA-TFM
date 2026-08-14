@@ -16,6 +16,7 @@ COMPOSE="docker compose"
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONF_FILE="${DIR}/lb.conf"
 VERSION_FILE="${DIR}/.lb_config_version"
+STACK_FILE="${DIR}/../docker-stack.yml"
 
 exec_manager() { $COMPOSE exec -T swarm-manager "$@"; }
 
@@ -71,3 +72,12 @@ exec_manager docker service update \
   "${STACK}_lb" >/dev/null
 
 echo "${new_version}" > "${VERSION_FILE}"
+
+# docker-stack.yml queda con el mismo nombre de config que el servicio "lb"
+# recien reconfigurado en vivo -- si no, el proximo `docker stack deploy`
+# (deploy-webapp.sh) intenta recrear "fireguard-lb-config-v${old_version}"
+# con el contenido nuevo de lb.conf y falla ("only updates to Labels are
+# allowed": los configs de Swarm son inmutables, ver nota igual en
+# stack/monitoring/docker-stack.yml sobre prometheus-swarm-config).
+echo "==> Actualizando docker-stack.yml (fireguard-lb-config-v${old_version} -> v${new_version})..."
+sed -i "s/fireguard-lb-config-v${old_version}/fireguard-lb-config-v${new_version}/g" "${STACK_FILE}"
