@@ -1,8 +1,11 @@
 # TFM del Master IA de BIGSchool 
+Este repo es la presentación de mi TFM para la Maestría de Desarrollo con IA de BIG School.
+
+Este TFM se basa en el proceso de creación de un mockup usando la IA de banami.com, para luego exportar el mockup y crear el codigo con claude.ai, el desarrollo de la app se ha ido creando de forma conversacional, no solo se buscó crear una app, sino aplicar seguridad a la misma, junto al desarrollo de toda la infra y el proceso de despliegue en un proveedor cloud.
 
 ## Documentación
 
-Si es la primera vez que ves este proyecto, arrancá por [`docs/`](docs/README.md) en vez de por los pasos de despliegue de abajo:
+Si es la primera vez que ves este proyecto, arrancá por [`docs/`](docs/README.md) para comprender en detalle la app y luego los pasos de despliegue de abajo:
 
 - 📊 [Presentación](https://docs.google.com/presentation/d/1RxDmtTsTzwtj3sFXQBI8up5idwrgrJk_sOg9Abvpw3w/edit?usp=sharing) — la historia del proyecto, de mockup a producción
 - 🐳 [Arquitectura Docker](docs/docker-architecture.md) — Swarm → DinD → VM, en 3 diagramas
@@ -15,7 +18,7 @@ Si es la primera vez que ves este proyecto, arrancá por [`docs/`](docs/README.m
 
 Si deseas hacer una clone del repo y deployarlo en forma local, aqui veras lo que necesitas y el detalle de los scripts
 
-## Detalle del despliegue de la app FireGuard generada para este proyecto.
+## Detalle del despliegue de la app “FireGuard” generada para este proyecto.
 
 Levanta 3 contenedores `docker:dind` (1 manager + 2 workers) sobre una red bridge
 propia, los une en un clúster Swarm, y despliega ahí la webapp **FireGuard**
