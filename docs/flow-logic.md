@@ -34,7 +34,7 @@ flowchart TD
     Ext --> Hist["cambia estado?\nINSERT inspection_history"]
     Dash --> Rep["Reportes:\nresumen · actividad · pronóstico"]
     Dash --> Role{"session.role\n= admin?"}
-    Role -- inspector --> Self["Ajustes → mi perfil\ny mi contraseña"]
+    Role -- inspector --> Perfil["Ajustes → mi perfil\ny mi contraseña"]
     Role -- admin --> Users["Ajustes → Usuarios de la empresa"]
 
     Users --> UAdd["Alta de usuario\n(tope: license_count)"]
