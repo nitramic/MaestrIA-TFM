@@ -5,6 +5,7 @@ Guía de lectura para quien llega al proyecto sin contexto previo — de la hist
 ## 1. [Presentación](https://docs.google.com/presentation/d/1RxDmtTsTzwtj3sFXQBI8up5idwrgrJk_sOg9Abvpw3w/edit?usp=sharing)
 
 La historia del proyecto: del mockup en [Banani.co](https://app.banani.co/preview/lS6OIWLGsO2A) a la app construida con Claude, sus funcionalidades, y la infraestructura donde corre. 15 diapositivas, en Google Slides.
+si quieres ver en la carpeta mockup encontraras los exports usados, sino en el siguiente [link](https://app.banani.co/preview/lS6OIWLGsO2A)
 
 ## 2. [Arquitectura Docker](docker-architecture.md)
 
