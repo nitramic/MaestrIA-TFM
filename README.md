@@ -4,6 +4,19 @@ Levanta 3 contenedores `docker:dind` (1 manager + 2 workers) sobre una red bridg
 propia, los une en un clúster Swarm, y despliega ahí la webapp **FireGuard**
 (gestión de extintores, multi-empresa) junto con su base de datos de directorio.
 
+## Documentación
+
+Si es la primera vez que ves este proyecto, arrancá por [`docs/`](docs/README.md) en vez de por los pasos de despliegue de abajo:
+
+- 📊 [Presentación](https://docs.google.com/presentation/d/1RxDmtTsTzwtj3sFXQBI8up5idwrgrJk_sOg9Abvpw3w/edit?usp=sharing) — la historia del proyecto, de mockup a producción
+- 🐳 [Arquitectura Docker](docs/docker-architecture.md) — Swarm → DinD → VM, en 3 diagramas
+- 🗄️ [Esquema de base de datos](docs/db-schema.md) — directorio + base por empresa
+- 🔀 [Lógica de la app y del panel admin](docs/flow-logic.md) — diagramas de flujo
+
+## Despliegue en vivo (Colab)
+
+[Notebook de Colab](https://colab.research.google.com/drive/1Qmo-y0RWVR30LT0IeSf9dPZw5lAVJc2T?usp=sharing) que despliega una demo completa de punta a punta: provisiona la VM, corre paso a paso todo lo de abajo (swarm, webapp, empresa demo, monitoreo) y deja el stack levantado para pruebas reales.
+
 ## Requisitos
 
 - Docker Engine con soporte para contenedores `privileged` (necesario para DinD).
