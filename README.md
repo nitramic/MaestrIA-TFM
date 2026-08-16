@@ -15,7 +15,7 @@ Si es la primera vez que ves este proyecto, arrancá por [`docs/`](docs/README.m
 
 Si deseas hacer una clone del repo y deployarlo en forma local, aqui veras lo que necesitas y el detalle de los scripts
 
-# Detalle del despliegue de la app FireGuard generada para este proyecto.
+## Detalle del despliegue de la app FireGuard generada para este proyecto.
 
 Levanta 3 contenedores `docker:dind` (1 manager + 2 workers) sobre una red bridge
 propia, los une en un clúster Swarm, y despliega ahí la webapp **FireGuard**
