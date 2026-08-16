@@ -122,8 +122,9 @@ tercer worker (`swarm-worker3`, ver `add-swarm-worker.sh`) y aloja ahí
 `app5` y `app6` en exclusiva. Al escalar hacia adentro, `swarm-worker3` se
 deja corriendo (inactivo) para poder volver a escalar rápido.
 
-Para probar el escalado a las 6 instancias y el reparto de carga del
-balanceador de punta a punta:
+Para probar el reparto de carga del balanceador contra los nodos `appN`
+que esten desplegados en ese momento (no escala nada -- corré primero
+`./scale-out.sh` si querés probarlo con más de 2):
 
 ```bash
 ./test-scale-balancer.sh
@@ -137,6 +138,7 @@ datos para mostrar:
 ```bash
 ./test-app-logins.sh              # 20 ciclos de login/logout, 1 por segundo
 ./test-app-logins.sh 50 0.5       # 50 ciclos, medio segundo de pausa
+./test-app-logins.sh 50 1 2       # 50 ciclos, 2 de ellos fallidos a proposito
 ```
 
 ## 3. Dar de alta empresas
