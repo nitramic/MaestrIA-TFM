@@ -15,6 +15,9 @@ Si es la primera vez que ves este proyecto, arrancá por [`docs/`](docs/README.m
 ## Despliegue en vivo (Colab)
 
 [Notebook de Colab](https://colab.research.google.com/drive/1Qmo-y0RWVR30LT0IeSf9dPZw5lAVJc2T?usp=sharing) que despliega una demo completa de punta a punta: provisiona la VM, corre paso a paso todo lo de abajo (swarm, webapp, empresa demo, monitoreo) y deja el stack levantado para pruebas reales.
+Canales Slack para ver los eventos:
+[#APP-Events](https://app.slack.com/client/T0BNQL55DPC/C0BR4FA0B7S)
+[#Infra](https://app.slack.com/client/T0BNQL55DPC/C0BPK1KFS7J)
 
 Si deseas hacer una clone del repo y deployarlo en forma local, aqui veras lo que necesitas y el detalle de los scripts
 
